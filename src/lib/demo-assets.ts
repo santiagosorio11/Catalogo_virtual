@@ -12,6 +12,12 @@ const CATEGORY_IMAGES: Record<string, string> = {
 };
 
 const PRODUCT_IMAGES: Record<string, string> = {
+  "020-midnight-blue": `${DEMO_ASSET_ROOT}/020-midnight-blue.jpg`,
+  "028-classic-moka-028": `${DEMO_ASSET_ROOT}/028-classic-moka.jpg`,
+  "031-classic-taupe": `${DEMO_ASSET_ROOT}/031-classic-taupe.jpg`,
+  "055-iron-purple": `${DEMO_ASSET_ROOT}/055-iron-purple.png`,
+  "092-love-kiss": `${DEMO_ASSET_ROOT}/092-love-kiss.jpg`,
+  "150-pastel-aqua": `${DEMO_ASSET_ROOT}/150-pastel-aqua.jpg`,
   "010-ice-blue": `${DEMO_ASSET_ROOT}/010-ice-blue.jpg`,
   "011-ice-purple": `${DEMO_ASSET_ROOT}/011-ice-purple.jpg`,
   "012-ice-lilac": `${DEMO_ASSET_ROOT}/012-ice-lilac.jpg`,
