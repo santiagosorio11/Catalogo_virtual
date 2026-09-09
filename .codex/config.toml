@@ -1,0 +1,18 @@
+[mcp_servers.supabase_catalogo_virtual]
+url = "https://mcp.supabase.com/mcp?project_ref=xoztabrfvxandlvjkbhs&features=docs%2Caccount%2Cdatabase%2Cdebugging%2Cdevelopment%2Cfunctions%2Cbranching"
+auth = "oauth"
+scopes = [
+  "projects:read",
+  "projects:write",
+  "database:read",
+  "database:write",
+  "analytics:read",
+  "secrets:read",
+  "edge_functions:read",
+  "edge_functions:write",
+  "environment:read",
+  "environment:write",
+]
+enabled = true
+required = false
+default_tools_approval_mode = "writes"
