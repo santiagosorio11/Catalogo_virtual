@@ -9,7 +9,7 @@ export function AdminTopbar({
   actions?: React.ReactNode;
 }) {
   return (
-    <header className="sticky top-16 z-30 flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6 lg:top-0">
+    <header className="sticky top-14 z-30 flex min-h-16 items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur sm:px-6">
       <h1 className="truncate text-lg font-semibold tracking-[-0.02em] text-slate-950">{title}</h1>
       <div className="flex shrink-0 items-center gap-2 sm:gap-3">
         {actions}

@@ -48,6 +48,18 @@ La primera apertura sin sesión muestra el login. Después de autenticar, las si
 
 Si el navegador bloquea todas las cookies de terceros, permite cookies para el dominio del catálogo o abre `/admin` en una pestaña nueva. No envíes la URL `/admin` a clientes; comparte únicamente la raíz pública.
 
+### Si aparece "vercel.com refused to connect"
+
+Ese mensaje indica que Vercel está redirigiendo el iframe a su propia pantalla de autenticación. La pantalla de Vercel no admite ser cargada dentro de un iframe.
+
+1. En Vercel abre el proyecto y entra a `Settings > Deployment Protection`.
+2. En `Vercel Authentication`, selecciona `None` para la URL que vas a embeber y guarda.
+3. Usa preferiblemente el dominio de producción listado en `Settings > Domains`; evita la URL de rama que contiene `git-main`.
+4. Vuelve a desplegar después de cambiar `GHL_ALLOWED_FRAME_ANCESTORS`.
+5. Comprueba que la URL ya no redirige a `vercel.com/sso-api` antes de pegar `https://TU-DOMINIO/admin` en GHL.
+
+Un enlace compartible de preview no es apropiado como URL permanente del iframe: depende de cookies de Vercel y puede romperse en sesiones o navegadores distintos. El login que debe proteger el panel es `/admin/login`, servido por esta aplicación, no el login de Vercel.
+
 ## 5. MCP de Supabase para este proyecto
 
 El servidor quedó declarado en `.codex/config.toml` con el nombre `supabase_catalogo_virtual` y limitado al proyecto `xoztabrfvxandlvjkbhs`.

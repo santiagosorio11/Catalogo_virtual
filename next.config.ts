@@ -22,24 +22,34 @@ const nextConfig: NextConfig = {
         hostname: "*.supabase.co",
         pathname: "/storage/v1/object/public/**",
       },
+      {
+        protocol: "https",
+        hostname: "d1b50uin55dq3m.cloudfront.net",
+        pathname: "/**",
+      },
     ],
   },
   async headers() {
     return [
       {
-        source: "/admin/:path*",
+        source: "/:path*",
         headers: [
           {
             key: "Content-Security-Policy",
             value: `frame-ancestors ${frameAncestors}`,
           },
           {
-            key: "Cache-Control",
-            value: "private, no-cache, no-store, must-revalidate",
-          },
-          {
             key: "Referrer-Policy",
             value: "strict-origin-when-cross-origin",
+          },
+        ],
+      },
+      {
+        source: "/admin/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "private, no-cache, no-store, must-revalidate",
           },
         ],
       },

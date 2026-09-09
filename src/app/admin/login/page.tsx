@@ -5,21 +5,6 @@ import { useState } from "react";
 import { ArrowRight, ExternalLink, LockKeyhole, ShieldCheck } from "lucide-react";
 import { login } from "@/actions/auth";
 
-function OrbitaLogo() {
-  return (
-    <div className="flex items-center gap-3" aria-label="Órbita IA">
-      <svg viewBox="0 0 48 48" className="h-10 w-10" aria-hidden="true">
-        <circle cx="22" cy="26" r="15" fill="none" stroke="#63b7cc" strokeWidth="1.5" />
-        <path d="M8 17c10 2 20-2 28-11-3 10-10 16-20 18" fill="#63b7cc" opacity=".9" />
-        <circle cx="36" cy="8" r="2.7" fill="#a8deea" />
-      </svg>
-      <span className="text-xl font-semibold tracking-tight text-white">
-        Órbita<span className="text-orbita-cyan">.IA</span>
-      </span>
-    </div>
-  );
-}
-
 export default function AdminLoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -39,8 +24,6 @@ export default function AdminLoginPage() {
         <section className="relative hidden overflow-hidden px-10 py-10 lg:flex lg:flex-col lg:justify-between xl:px-16">
           <div className="absolute -left-32 top-1/3 h-80 w-80 rounded-full bg-orbita-cyan/15 blur-3xl" />
           <div className="absolute -right-24 bottom-0 h-96 w-96 rounded-full bg-blue-500/10 blur-3xl" />
-
-          <OrbitaLogo />
 
           <div className="relative max-w-xl pb-12">
             <p className="mb-5 text-sm font-medium uppercase tracking-[0.2em] text-orbita-cyan">
@@ -66,13 +49,7 @@ export default function AdminLoginPage() {
         </section>
 
         <section className="relative flex min-h-[100dvh] items-center justify-center bg-[#f5f8fa] px-5 py-10 sm:px-8">
-          <div className="absolute left-5 top-5 lg:hidden">
-            <div className="rounded-xl bg-orbita-navy px-4 py-2.5">
-              <OrbitaLogo />
-            </div>
-          </div>
-
-          <div className="admin-enter w-full max-w-md pt-20 lg:pt-0">
+          <div className="admin-enter w-full max-w-md">
             <div className="mb-8">
               <div className="mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-orbita-cyan-soft text-orbita-cyan-dark">
                 <LockKeyhole size={22} />

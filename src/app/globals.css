@@ -46,6 +46,14 @@ body {
   --brand-light: var(--orbita-cyan-soft);
 }
 
+.storefront-shell {
+  --foreground: var(--orbita-navy);
+  --brand: #087fa4;
+  --brand-dark: #05647f;
+  --brand-light: #e4f5f9;
+  color: var(--orbita-navy);
+}
+
 button,
 a,
 input,

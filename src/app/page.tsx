@@ -1,8 +1,12 @@
-import Image from "next/image";
 import { getCategoryTree, getProducts, getStoreSettings } from "@/lib/data/queries";
 import { Header } from "@/components/storefront/Header";
 import { CategoryChips } from "@/components/storefront/CategoryChips";
 import { ProductGrid } from "@/components/storefront/ProductGrid";
+import {
+  withDemoCategoryAssets,
+  withDemoProductAssets,
+  withDemoStoreAssets,
+} from "@/lib/demo-assets";
 
 export default async function Home({
   searchParams,
@@ -10,46 +14,60 @@ export default async function Home({
   searchParams: Promise<{ categoria?: string }>;
 }) {
   const { categoria } = await searchParams;
-
-  const [settings, categoryTree, products] = await Promise.all([
+  const [rawSettings, rawCategoryTree] = await Promise.all([
     getStoreSettings(),
     getCategoryTree(),
-    getProducts({ categorySlug: categoria }),
   ]);
 
-  const topLevelCategories = categoryTree;
+  const settings = withDemoStoreAssets(rawSettings);
+  const topLevelCategories = withDemoCategoryAssets(rawCategoryTree);
+  const requestedCategory = categoria ?? topLevelCategories[0]?.slug;
+  const categoryFilter = requestedCategory === "todo" ? undefined : requestedCategory;
+  const products = withDemoProductAssets(
+    await getProducts({ categorySlug: categoryFilter })
+  );
 
   return (
-    <>
-      <Header storeName={settings.store_name} logoUrl={settings.logo_url} />
+    <div className="storefront-shell min-h-screen bg-[#f4f8fb]">
+      <Header
+        storeName={settings.store_name}
+        logoUrl={settings.logo_url}
+        bannerUrl={settings.banner_url}
+        description={settings.description}
+        whatsappNumber={settings.whatsapp_number}
+      />
 
-      {settings.banner_url && (
-        <div className="relative h-40 w-full overflow-hidden sm:h-56">
-          <Image
-            src={settings.banner_url}
-            alt={settings.store_name}
-            fill
-            className="object-cover"
-            priority
-          />
-        </div>
-      )}
+      <main className="mx-auto w-full max-w-7xl px-3 pb-32 pt-5 sm:px-5 sm:pt-7">
+        <CategoryChips
+          categories={topLevelCategories}
+          activeSlug={requestedCategory}
+          logoUrl={settings.logo_url}
+        />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-5">
-        {settings.description && (
-          <p className="mb-4 text-sm text-black/60">{settings.description}</p>
-        )}
-
-        <div className="mb-5">
-          <CategoryChips categories={topLevelCategories} activeSlug={categoria} />
-        </div>
-
-        <ProductGrid products={products} />
+        <section className="mt-6" aria-labelledby="products-heading">
+          <div className="mb-3 flex items-end justify-between gap-3 px-1">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand">
+                Catálogo
+              </p>
+              <h2
+                id="products-heading"
+                className="mt-1 text-xl font-bold text-orbita-navy sm:text-2xl"
+              >
+                Productos para ti
+              </h2>
+            </div>
+            <span className="text-xs font-medium text-slate-500">
+              {products.length} {products.length === 1 ? "producto" : "productos"}
+            </span>
+          </div>
+          <ProductGrid products={products} />
+        </section>
       </main>
 
-      <footer className="border-t border-black/5 py-6 text-center text-xs text-black/40">
-        {settings.store_name}
+      <footer className="border-t border-slate-200 bg-white px-4 py-7 text-center text-xs text-slate-500">
+        {settings.store_name} · Catálogo impulsado por Órbita IA
       </footer>
-    </>
+    </div>
   );
 }

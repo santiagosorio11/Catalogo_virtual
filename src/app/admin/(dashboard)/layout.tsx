@@ -11,9 +11,9 @@ export default async function AdminDashboardLayout({ children }: { children: Rea
   if (!user) redirect("/admin/login");
 
   return (
-    <div className="admin-shell flex min-h-[100dvh] items-start bg-orbita-canvas">
+    <div className="admin-shell min-h-[100dvh] bg-orbita-canvas">
       <AdminSidebar email={user.email ?? ""} />
-      <div className="min-w-0 flex-1 pt-16 lg:pt-0">{children}</div>
+      <div className="min-w-0">{children}</div>
     </div>
   );
 }
