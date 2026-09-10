@@ -10,8 +10,8 @@ export default async function CategoriasPage() {
       <AdminTopbar title="Categorías" />
       <div className="admin-enter p-4 sm:p-6">
         <p className="mb-5 text-sm text-black/50">
-          Agrupa los productos en categorías y arrástralas en el orden que te gustaría que se
-          mostraran.
+          Agrupa los productos y arrastra las categorías para ordenar el catálogo. Entra en
+          Configurar para editar su imagen y administrar sus propias subcategorías.
         </p>
         <CategoriesManager key={JSON.stringify(categories)} initial={categories} />
       </div>

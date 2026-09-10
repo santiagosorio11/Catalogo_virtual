@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { formatCOP } from "@/lib/currency";
 import { buildWhatsAppLink } from "@/lib/whatsapp";
 import { updateOrderStatus, updatePaymentStatus } from "@/actions/orders";
@@ -35,10 +33,6 @@ export function OrderDetail({ order }: { order: OrderWithItems }) {
 
   return (
     <div>
-      <Link href="/admin/pedidos" className="mb-4 inline-flex items-center gap-1 text-sm text-black/50 hover:text-black">
-        <ArrowLeft size={16} /> Pedidos
-      </Link>
-
       <div className="mb-5 flex items-center gap-3">
         <h1 className="text-xl font-semibold">Pedido #{order.order_number}</h1>
         <StatusBadge status={status} />
@@ -147,6 +141,19 @@ export function OrderDetail({ order }: { order: OrderWithItems }) {
 
           <section className="rounded-2xl border border-black/5 bg-white p-5">
             <h2 className="mb-3 text-sm font-semibold text-black/60">Entrega</h2>
+            {order.location_name_snapshot && (
+              <div className="mb-3 rounded-xl bg-orbita-cyan-soft px-3 py-2.5 text-sm text-orbita-navy">
+                <p className="font-semibold">Sede {order.location_name_snapshot}</p>
+                {order.location_address_snapshot && (
+                  <p className="mt-0.5 text-xs text-slate-500">{order.location_address_snapshot}</p>
+                )}
+                {order.location_whatsapp_snapshot && (
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    WhatsApp: +{order.location_whatsapp_snapshot}
+                  </p>
+                )}
+              </div>
+            )}
             {order.delivery_method === "domicilio" ? (
               <div className="space-y-1 text-sm text-black/70">
                 <p className="font-medium text-[var(--foreground)]">Domicilio</p>

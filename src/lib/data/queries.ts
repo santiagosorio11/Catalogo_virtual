@@ -4,6 +4,7 @@ import type {
   CategoryWithChildren,
   Product,
   ProductWithRelations,
+  StoreLocation,
   StoreSettings,
 } from "@/lib/types";
 
@@ -53,6 +54,25 @@ export async function getAllCategoriesFlat(): Promise<Category[]> {
     .select("*")
     .order("sort_order", { ascending: true });
   return (data ?? []) as Category[];
+}
+
+export async function getActiveStoreLocations(): Promise<StoreLocation[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("store_locations")
+    .select("*")
+    .eq("active", true)
+    .order("sort_order", { ascending: true });
+  return (data ?? []) as StoreLocation[];
+}
+
+export async function getAllStoreLocations(): Promise<StoreLocation[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("store_locations")
+    .select("*")
+    .order("sort_order", { ascending: true });
+  return (data ?? []) as StoreLocation[];
 }
 
 /** Returns the category id itself plus all descendant category ids. */

@@ -38,7 +38,7 @@ export default async function ProductEditPage({
 
   return (
     <>
-      <AdminTopbar title={product.name} />
+      <AdminTopbar title={product.name} backHref="/admin/productos" />
       <div className="admin-enter p-4 sm:p-6">
         <ProductEditor product={fullProduct} categories={categories} />
       </div>

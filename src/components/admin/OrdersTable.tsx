@@ -106,7 +106,14 @@ export function OrdersTable({
                   {new Date(order.created_at).toLocaleDateString("es-CO")}
                 </td>
                 <td className="p-3">{order.customer_name}</td>
-                <td className="p-3 capitalize text-black/50">{order.delivery_method}</td>
+                <td className="p-3 text-black/50">
+                  <span className="capitalize">{order.delivery_method}</span>
+                  {order.location_name_snapshot && (
+                    <span className="mt-0.5 block text-xs text-orbita-cyan-dark">
+                      {order.location_name_snapshot}
+                    </span>
+                  )}
+                </td>
                 <td className="p-3 font-medium">{formatCOP(order.total)}</td>
                 <td className="p-3">
                   <StatusBadge status={order.status} />

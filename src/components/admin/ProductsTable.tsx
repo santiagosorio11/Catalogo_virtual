@@ -275,13 +275,20 @@ function ActiveToggle({ productId, active }: { productId: string; active: boolea
 
   return (
     <button
+      type="button"
       onClick={handleChange}
       disabled={pending}
-      className={`relative h-6 w-11 rounded-full transition-colors ${checked ? "bg-brand" : "bg-black/15"}`}
+      role="switch"
+      aria-checked={checked}
+      aria-label={checked ? "Desactivar producto" : "Activar producto"}
+      className={`relative h-[22px] w-10 overflow-hidden rounded-full transition-colors disabled:cursor-wait disabled:opacity-60 ${
+        checked ? "bg-brand" : "bg-black/15"
+      }`}
     >
       <span
-        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-          checked ? "translate-x-5" : "translate-x-0.5"
+        aria-hidden="true"
+        className={`absolute left-[3px] top-[3px] h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+          checked ? "translate-x-[18px]" : "translate-x-0"
         }`}
       />
     </button>

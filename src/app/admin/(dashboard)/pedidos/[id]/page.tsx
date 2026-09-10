@@ -14,7 +14,7 @@ export default async function PedidoDetailPage({
 
   return (
     <>
-      <AdminTopbar title={`Pedido #${order.order_number}`} />
+      <AdminTopbar title={`Pedido #${order.order_number}`} backHref="/admin/pedidos" />
       <div className="admin-enter p-4 sm:p-6">
         <OrderDetail order={order} />
       </div>

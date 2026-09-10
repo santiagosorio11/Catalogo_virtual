@@ -11,6 +11,8 @@ interface OrderSummaryInput {
   addressDetails?: string;
   city?: string;
   department?: string;
+  locationName?: string | null;
+  locationAddress?: string | null;
   notes?: string;
   items: CartItem[];
   subtotal: number;
@@ -26,6 +28,13 @@ export function buildOrderSummaryText(input: OrderSummaryInput): string {
   lines.push(`Cédula: ${input.customerCedula}`);
   lines.push(`Teléfono: ${input.customerPhone}`);
   lines.push("");
+
+  if (input.locationName) {
+    lines.push("*Sede asignada*");
+    lines.push(input.locationName);
+    if (input.locationAddress) lines.push(input.locationAddress);
+    lines.push("");
+  }
 
   if (input.deliveryMethod === "domicilio") {
     lines.push("*Entrega a domicilio*");

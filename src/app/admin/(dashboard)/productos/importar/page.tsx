@@ -25,7 +25,7 @@ export default function ImportarProductosPage() {
 
   return (
     <>
-      <AdminTopbar title="Importar productos" />
+      <AdminTopbar title="Importar productos" backHref="/admin/productos" />
       <div className="admin-enter p-4 sm:p-6">
         <div className="max-w-xl rounded-2xl border border-black/5 bg-white p-4 sm:p-6">
           <p className="mb-4 text-sm text-black/60">

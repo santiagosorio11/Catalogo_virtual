@@ -7,6 +7,7 @@ export interface CreateOrderInput {
   customerName: string;
   customerCedula: string;
   customerPhone: string;
+  locationId?: string;
   deliveryMethod: DeliveryMethod;
   address?: string;
   addressDetails?: string;
@@ -20,6 +21,9 @@ export interface CreateOrderResult {
   orderId: string;
   orderNumber: number;
   subtotal: number;
+  locationName: string | null;
+  locationAddress: string | null;
+  whatsappNumber: string | null;
 }
 
 export async function createOrder(
@@ -47,7 +51,7 @@ export async function createOrder(
     subtotal: item.unitPrice * item.quantity,
   }));
 
-  const { data, error } = await supabase.rpc("create_order_with_items", {
+  const rpcInput = {
     p_customer_name: input.customerName.trim(),
     p_customer_cedula: input.customerCedula.trim(),
     p_customer_phone: input.customerPhone.trim(),
@@ -59,15 +63,50 @@ export async function createOrder(
     p_notes: input.notes?.trim() || null,
     p_subtotal: subtotal,
     p_total: subtotal,
+    p_location_id: input.locationId || null,
     p_items: itemsPayload,
-  });
+  };
+
+  let { data, error } = await supabase.rpc("create_order_with_items", rpcInput);
+  let usedLegacyRpc = false;
+
+  // Keeps checkout operational while migration 0005 is being deployed. Once
+  // the new RPC exists, Supabase returns the destination WhatsApp atomically.
+  if (
+    error &&
+    (error.code === "PGRST202" || error.message.includes("Could not find the function"))
+  ) {
+    const legacyInput: Partial<typeof rpcInput> = { ...rpcInput };
+    delete legacyInput.p_location_id;
+    const legacyResult = await supabase.rpc("create_order_with_items", legacyInput);
+    data = legacyResult.data;
+    error = legacyResult.error;
+    usedLegacyRpc = true;
+  }
 
   if (error || !data || data.length === 0) {
     return { error: error?.message ?? "No se pudo crear el pedido." };
   }
 
   const order = data[0];
-  return { orderId: order.id, orderNumber: order.order_number, subtotal };
+  let fallbackWhatsApp: string | null = null;
+  if (usedLegacyRpc || !order.whatsapp_number) {
+    const { data: settings } = await supabase
+      .from("store_settings")
+      .select("whatsapp_number")
+      .eq("id", true)
+      .maybeSingle();
+    fallbackWhatsApp = settings?.whatsapp_number ?? null;
+  }
+
+  return {
+    orderId: order.id,
+    orderNumber: order.order_number,
+    subtotal,
+    locationName: order.location_name ?? null,
+    locationAddress: order.location_address ?? null,
+    whatsappNumber: order.whatsapp_number ?? fallbackWhatsApp,
+  };
 }
 
 export async function updateOrderStatus(orderId: string, status: OrderStatus) {

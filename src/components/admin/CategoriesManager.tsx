@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   DndContext,
@@ -18,7 +19,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
+import { ArrowRight, GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { deleteCategory, reorderCategories } from "@/actions/categories";
 import { CategoryFormModal } from "./CategoryFormModal";
 import type { CategoryWithChildren, Category } from "@/lib/types";
@@ -28,13 +29,11 @@ function CategoryCard({
   index,
   onEdit,
   onDelete,
-  onOpenSubcategories,
 }: {
   category: CategoryWithChildren;
   index: number;
   onEdit: () => void;
   onDelete: () => void;
-  onOpenSubcategories: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: category.id,
@@ -44,13 +43,19 @@ function CategoryCard({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
-      className="rounded-2xl border border-black/5 bg-white p-4"
+      className="rounded-2xl border border-slate-200 bg-white p-4 transition hover:border-orbita-cyan/60 hover:shadow-[0_18px_45px_-34px_rgba(3,27,45,0.55)]"
     >
       <div className="mb-2 flex items-center justify-between">
         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-black/5 text-xs font-medium">
           {index + 1}
         </span>
-        <button {...attributes} {...listeners} className="cursor-grab text-black/30 hover:text-black">
+        <button
+          type="button"
+          {...attributes}
+          {...listeners}
+          aria-label={`Mover ${category.name}`}
+          className="cursor-grab rounded-lg p-1 text-black/30 hover:bg-slate-50 hover:text-black"
+        >
           <GripVertical size={18} />
         </button>
       </div>
@@ -68,20 +73,21 @@ function CategoryCard({
       <p className="text-center text-sm font-medium text-[var(--foreground)]">{category.name}</p>
 
       <div className="mt-3 flex items-center justify-center gap-3">
-        <button onClick={onEdit} className="text-black/40 hover:text-brand" aria-label="Editar">
+        <button type="button" onClick={onEdit} className="text-black/40 hover:text-brand" aria-label={`Editar ${category.name}`}>
           <Pencil size={16} />
         </button>
-        <button onClick={onDelete} className="text-black/40 hover:text-red-500" aria-label="Eliminar">
+        <button type="button" onClick={onDelete} className="text-black/40 hover:text-red-500" aria-label={`Eliminar ${category.name}`}>
           <Trash2 size={16} />
         </button>
       </div>
 
-      <button
-        onClick={onOpenSubcategories}
-        className="mt-3 w-full rounded-lg bg-black/5 py-1.5 text-xs font-medium text-black/60 hover:bg-black/10"
+      <Link
+        href={`/admin/categorias/${category.id}`}
+        className="mt-3 flex min-h-10 w-full items-center justify-between rounded-xl bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-orbita-cyan-soft hover:text-orbita-navy"
       >
-        Subcategorías ({category.children.length})
-      </button>
+        <span>Configurar · {category.children.length} subcategorías</span>
+        <ArrowRight size={15} aria-hidden="true" />
+      </Link>
     </div>
   );
 }
@@ -92,7 +98,6 @@ export function CategoriesManager({ initial }: { initial: CategoryWithChildren[]
   const [modal, setModal] = useState<{ parentId: string | null; category: Category | null } | null>(
     null
   );
-  const [expanded, setExpanded] = useState<CategoryWithChildren | null>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
@@ -117,6 +122,7 @@ export function CategoriesManager({ initial }: { initial: CategoryWithChildren[]
     <div>
       <div className="mb-4 flex justify-end">
         <button
+          type="button"
           onClick={() => setModal({ parentId: null, category: null })}
           className="flex items-center gap-2 rounded-lg bg-brand px-4 py-2 text-sm font-medium text-white hover:bg-brand-dark"
         >
@@ -126,7 +132,7 @@ export function CategoriesManager({ initial }: { initial: CategoryWithChildren[]
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={categories.map((c) => c.id)} strategy={rectSortingStrategy}>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <div className="grid grid-flow-dense grid-cols-1 gap-4 min-[440px]:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
             {categories.map((category, index) => (
               <CategoryCard
                 key={category.id}
@@ -134,50 +140,16 @@ export function CategoriesManager({ initial }: { initial: CategoryWithChildren[]
                 index={index}
                 onEdit={() => setModal({ parentId: null, category })}
                 onDelete={() => handleDelete(category.id)}
-                onOpenSubcategories={() => setExpanded(category)}
               />
             ))}
           </div>
         </SortableContext>
       </DndContext>
 
-      {expanded && (
-        <div className="mt-6 rounded-2xl border border-black/5 bg-white p-5">
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-semibold">Subcategorías de {expanded.name}</h2>
-            <button
-              onClick={() => setModal({ parentId: expanded.id, category: null })}
-              className="flex items-center gap-1 text-sm font-medium text-brand hover:underline"
-            >
-              <Plus size={14} /> Agregar
-            </button>
-          </div>
-
-          {expanded.children.length === 0 ? (
-            <p className="text-sm text-black/40">Sin subcategorías todavía.</p>
-          ) : (
-            <ul className="divide-y divide-black/5">
-              {expanded.children.map((child) => (
-                <li key={child.id} className="flex items-center justify-between py-2.5">
-                  <span className="text-sm">{child.name}</span>
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setModal({ parentId: expanded.id, category: child })}
-                      className="text-black/40 hover:text-brand"
-                    >
-                      <Pencil size={15} />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(child.id)}
-                      className="text-black/40 hover:text-red-500"
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
+      {categories.length === 0 && (
+        <div className="rounded-2xl border border-dashed border-slate-300 bg-white px-5 py-12 text-center">
+          <p className="text-sm font-semibold text-slate-700">Todavía no hay categorías</p>
+          <p className="mt-1 text-sm text-slate-500">Crea la primera para organizar tu catálogo.</p>
         </div>
       )}
 

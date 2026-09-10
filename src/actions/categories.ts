@@ -26,10 +26,12 @@ export async function createCategory(input: {
 }) {
   const supabase = await createClient();
 
-  const { count } = await supabase
+  const siblingsQuery = supabase
     .from("categories")
-    .select("id", { count: "exact", head: true })
-    .is("parent_id", input.parentId);
+    .select("id", { count: "exact", head: true });
+  const { count } = input.parentId
+    ? await siblingsQuery.eq("parent_id", input.parentId)
+    : await siblingsQuery.is("parent_id", null);
 
   const slug = await uniqueSlug(input.name);
 
@@ -42,7 +44,7 @@ export async function createCategory(input: {
   });
 
   if (error) return { error: error.message };
-  revalidatePath("/admin/categorias");
+  revalidatePath("/admin/categorias", "layout");
   revalidatePath("/");
   return { success: true };
 }
@@ -59,16 +61,35 @@ export async function updateCategory(
     .eq("id", id);
 
   if (error) return { error: error.message };
-  revalidatePath("/admin/categorias");
+  revalidatePath("/admin/categorias", "layout");
   revalidatePath("/");
   return { success: true };
 }
 
 export async function deleteCategory(id: string) {
   const supabase = await createClient();
-  const { error } = await supabase.from("categories").delete().eq("id", id);
-  if (error) return { error: error.message };
-  revalidatePath("/admin/categorias");
+  const { data, error: readError } = await supabase.from("categories").select("id, parent_id");
+  if (readError) return { error: readError.message };
+
+  const childrenByParent = new Map<string, string[]>();
+  for (const category of data ?? []) {
+    if (!category.parent_id) continue;
+    const children = childrenByParent.get(category.parent_id) ?? [];
+    children.push(category.id);
+    childrenByParent.set(category.parent_id, children);
+  }
+
+  function collectDepthFirst(categoryId: string): string[] {
+    const descendants = (childrenByParent.get(categoryId) ?? []).flatMap(collectDepthFirst);
+    return [...descendants, categoryId];
+  }
+
+  for (const categoryId of collectDepthFirst(id)) {
+    const { error } = await supabase.from("categories").delete().eq("id", categoryId);
+    if (error) return { error: error.message };
+  }
+
+  revalidatePath("/admin/categorias", "layout");
   revalidatePath("/");
   return { success: true };
 }
@@ -87,7 +108,7 @@ export async function uploadCategoryImage(categoryId: string, formData: FormData
     .eq("id", categoryId);
   if (updateError) return { error: updateError.message };
 
-  revalidatePath("/admin/categorias");
+  revalidatePath("/admin/categorias", "layout");
   revalidatePath("/");
   return { success: true, url: result.url };
 }
@@ -99,7 +120,7 @@ export async function reorderCategories(orderedIds: string[]) {
       supabase.from("categories").update({ sort_order: index }).eq("id", id)
     )
   );
-  revalidatePath("/admin/categorias");
+  revalidatePath("/admin/categorias", "layout");
   revalidatePath("/");
   return { success: true };
 }

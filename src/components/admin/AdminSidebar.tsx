@@ -10,8 +10,8 @@ import {
   Home,
   LayoutDashboard,
   LogOut,
+  MapPinned,
   Package,
-  Settings,
 } from "lucide-react";
 import { logout } from "@/actions/auth";
 
@@ -22,7 +22,7 @@ const links = [
   { href: "/admin/productos", label: "Productos", icon: Package },
   { href: "/admin/inventario", label: "Inventario", icon: Boxes },
   { href: "/admin/pedidos", label: "Pedidos", icon: ClipboardList },
-  { href: "/admin/configuraciones", label: "Ajustes", icon: Settings },
+  { href: "/admin/sedes", label: "Sedes", icon: MapPinned },
 ];
 
 export function AdminSidebar({ email }: { email: string }) {

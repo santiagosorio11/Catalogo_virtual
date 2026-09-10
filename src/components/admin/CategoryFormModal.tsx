@@ -52,13 +52,13 @@ export function CategoryFormModal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-      <div className="w-full max-w-sm rounded-2xl bg-white p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" role="presentation">
+      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="category-modal-title">
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-base font-semibold">
+          <h2 id="category-modal-title" className="text-base font-semibold">
             {category ? "Editar categoría" : parentId ? "Nueva subcategoría" : "Nueva categoría"}
           </h2>
-          <button onClick={onClose} className="text-black/40 hover:text-black">
+          <button type="button" onClick={onClose} aria-label="Cerrar" className="rounded-lg p-1 text-black/40 hover:bg-slate-100 hover:text-black">
             <X size={20} />
           </button>
         </div>
@@ -69,6 +69,7 @@ export function CategoryFormModal({
               {imageUrl && <Image src={imageUrl} alt="" fill className="object-cover" />}
             </div>
             <button
+              type="button"
               onClick={() => fileInputRef.current?.click()}
               className="text-sm font-medium text-brand hover:underline"
             >
@@ -84,17 +85,32 @@ export function CategoryFormModal({
           </div>
         )}
 
-        <input
-          autoFocus
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="Nombre de la categoría"
-          className="w-full rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
-        />
+        <label className="block text-sm font-medium text-slate-700">
+          Nombre
+          <input
+            autoFocus
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Nombre de la categoría"
+            className="mt-1.5 w-full rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
+          />
+        </label>
+
+        <label className="mt-4 block text-sm font-medium text-slate-700">
+          URL de imagen <span className="font-normal text-slate-400">(opcional)</span>
+          <input
+            value={imageUrl ?? ""}
+            onChange={(e) => setImageUrl(e.target.value.trim() || null)}
+            placeholder="https://..."
+            inputMode="url"
+            className="mt-1.5 w-full rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
+          />
+        </label>
 
         {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
 
         <button
+          type="button"
           onClick={handleSave}
           disabled={saving || !name.trim()}
           className="mt-4 w-full rounded-lg bg-brand py-2.5 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"

@@ -25,7 +25,7 @@ export default function ImagenesLotePage() {
 
   return (
     <>
-      <AdminTopbar title="Subir imágenes por lote" />
+      <AdminTopbar title="Subir imágenes por lote" backHref="/admin/productos" />
       <div className="admin-enter p-4 sm:p-6">
         <div className="max-w-xl rounded-2xl border border-black/5 bg-white p-4 sm:p-6">
           <p className="mb-4 text-sm text-black/60">

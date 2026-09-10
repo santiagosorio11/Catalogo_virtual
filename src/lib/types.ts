@@ -89,6 +89,19 @@ export interface StoreSettings {
   updated_at: string;
 }
 
+export interface StoreLocation {
+  id: string;
+  name: string;
+  address: string;
+  city: string | null;
+  department: string | null;
+  whatsapp_number: string;
+  active: boolean;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Order {
   id: string;
   order_number: number;
@@ -105,6 +118,10 @@ export interface Order {
   payment_status: PaymentStatus;
   subtotal: number;
   total: number;
+  location_id?: string | null;
+  location_name_snapshot?: string | null;
+  location_address_snapshot?: string | null;
+  location_whatsapp_snapshot?: string | null;
   created_at: string;
 }
 

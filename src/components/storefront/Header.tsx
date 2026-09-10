@@ -74,11 +74,6 @@ export function Header({
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/35" />
 
-        <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full bg-orbita-navy/85 px-3 py-2 text-xs font-semibold text-white shadow-lg backdrop-blur sm:left-5 sm:top-5">
-          <span className="h-2 w-2 rounded-full bg-orbita-cyan" />
-          Catálogo virtual
-        </div>
-
         <Link
           href="/carrito"
           aria-label={`Ver carrito con ${totalQuantity} productos`}

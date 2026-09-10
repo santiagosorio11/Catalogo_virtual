@@ -31,8 +31,8 @@ export function GeneralSettingsForm({ settings }: { settings: StoreSettings }) {
           Número de WhatsApp de la tienda
         </h2>
         <p className="mb-2 text-xs text-black/40">
-          Formato internacional, solo dígitos, sin espacios ni +. Ejemplo: 573001234567. A este
-          número se abrirá el resumen del pedido cuando un cliente finalice su compra.
+          Formato internacional, solo dígitos, sin espacios ni +. Ejemplo: 573001234567. Este
+          número se usa como respaldo cuando todavía no hay sedes activas configuradas.
         </p>
         <input
           value={whatsappNumber}

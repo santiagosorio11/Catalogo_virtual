@@ -3,14 +3,20 @@
 import { useState } from "react";
 import Link from "next/link";
 import clsx from "clsx";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, MapPin } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import { formatCOP } from "@/lib/currency";
 import { buildOrderSummaryText, buildWhatsAppLink } from "@/lib/whatsapp";
 import { createOrder } from "@/actions/orders";
-import type { DeliveryMethod } from "@/lib/types";
+import type { DeliveryMethod, StoreLocation } from "@/lib/types";
 
-export function CheckoutForm({ whatsappNumber }: { whatsappNumber: string | null }) {
+export function CheckoutForm({
+  whatsappNumber,
+  locations,
+}: {
+  whatsappNumber: string | null;
+  locations: StoreLocation[];
+}) {
   const { items, subtotal, clear } = useCart();
 
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("domicilio");
@@ -22,15 +28,23 @@ export function CheckoutForm({ whatsappNumber }: { whatsappNumber: string | null
   const [city, setCity] = useState("");
   const [department, setDepartment] = useState("");
   const [notes, setNotes] = useState("");
+  const [locationId, setLocationId] = useState(locations.length === 1 ? locations[0].id : "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmation, setConfirmation] = useState<{ orderNumber: number; whatsappLink: string | null } | null>(
-    null
-  );
+  const [confirmation, setConfirmation] = useState<{
+    orderNumber: number;
+    whatsappLink: string | null;
+    locationName: string | null;
+  } | null>(null);
+  const selectedLocation = locations.find((location) => location.id === locationId) ?? null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (items.length === 0) return;
+    if (locations.length > 0 && !selectedLocation) {
+      setError("Selecciona la sede que atenderá el pedido.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
 
@@ -38,6 +52,7 @@ export function CheckoutForm({ whatsappNumber }: { whatsappNumber: string | null
       customerName: name,
       customerCedula: cedula,
       customerPhone: phone,
+      locationId: selectedLocation?.id,
       deliveryMethod,
       address: deliveryMethod === "domicilio" ? address : undefined,
       addressDetails: deliveryMethod === "domicilio" ? addressDetails : undefined,
@@ -55,7 +70,8 @@ export function CheckoutForm({ whatsappNumber }: { whatsappNumber: string | null
     }
 
     let whatsappLink: string | null = null;
-    if (whatsappNumber) {
+    const destinationWhatsApp = result.whatsappNumber ?? whatsappNumber;
+    if (destinationWhatsApp) {
       const text = buildOrderSummaryText({
         orderNumber: result.orderNumber,
         customerName: name,
@@ -66,17 +82,23 @@ export function CheckoutForm({ whatsappNumber }: { whatsappNumber: string | null
         addressDetails,
         city,
         department,
+        locationName: result.locationName,
+        locationAddress: result.locationAddress,
         notes,
         items,
         subtotal: result.subtotal,
       });
-      whatsappLink = buildWhatsAppLink(whatsappNumber, text);
+      whatsappLink = buildWhatsAppLink(destinationWhatsApp, text);
       // Best-effort: many browsers block window.open() once it follows an
       // await, so the button below is the reliable fallback.
       window.open(whatsappLink, "_blank");
     }
 
-    setConfirmation({ orderNumber: result.orderNumber, whatsappLink });
+    setConfirmation({
+      orderNumber: result.orderNumber,
+      whatsappLink,
+      locationName: result.locationName,
+    });
     clear();
   }
 
@@ -92,6 +114,11 @@ export function CheckoutForm({ whatsappNumber }: { whatsappNumber: string | null
             ? "Confirma el envío del resumen de tu pedido por WhatsApp."
             : "Guarda tu número de pedido para hacerle seguimiento."}
         </p>
+        {confirmation.locationName && (
+          <p className="mt-2 rounded-full bg-orbita-cyan-soft px-3 py-1 text-xs font-semibold text-orbita-navy">
+            Atendido por {confirmation.locationName}
+          </p>
+        )}
 
         {confirmation.whatsappLink && (
           <a
@@ -136,6 +163,43 @@ export function CheckoutForm({ whatsappNumber }: { whatsappNumber: string | null
       <h1 className="mb-5 text-xl font-semibold">Finalizar pedido</h1>
 
       <form onSubmit={handleSubmit} className="space-y-5">
+        {locations.length > 0 && (
+          <section className="space-y-3 rounded-2xl border border-orbita-cyan/30 bg-orbita-cyan-soft/45 p-4">
+            <div className="flex items-start gap-2.5">
+              <MapPin size={18} className="mt-0.5 shrink-0 text-orbita-cyan-dark" aria-hidden="true" />
+              <div>
+                <h2 className="text-sm font-semibold text-orbita-navy">Sede que atenderá tu pedido</h2>
+                <p className="mt-0.5 text-xs leading-5 text-slate-500">
+                  El resumen se enviará directamente al WhatsApp de esta sede.
+                </p>
+              </div>
+            </div>
+            <select
+              required
+              value={locationId}
+              onChange={(event) => setLocationId(event.target.value)}
+              className="w-full rounded-xl border border-white bg-white px-3 py-3 text-sm font-medium text-slate-800 outline-none focus:border-orbita-cyan"
+            >
+              <option value="">Selecciona una sede</option>
+              {locations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name}{location.city ? ` · ${location.city}` : ""}
+                </option>
+              ))}
+            </select>
+            {selectedLocation && (
+              <p className="rounded-xl bg-white/80 px-3 py-2 text-xs leading-5 text-slate-600">
+                {selectedLocation.address}
+                {(selectedLocation.city || selectedLocation.department) && (
+                  <span className="block text-slate-400">
+                    {[selectedLocation.city, selectedLocation.department].filter(Boolean).join(", ")}
+                  </span>
+                )}
+              </p>
+            )}
+          </section>
+        )}
+
         <section className="space-y-3">
           <h2 className="text-sm font-semibold text-black/60">Tus datos</h2>
           <input

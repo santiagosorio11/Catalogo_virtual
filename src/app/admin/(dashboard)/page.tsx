@@ -5,7 +5,7 @@ import {
   ClipboardList,
   PackageCheck,
   Plus,
-  Settings2,
+  MapPinned,
   Shapes,
   Store,
 } from "lucide-react";
@@ -76,10 +76,10 @@ export default async function AdminHomePage() {
       icon: Store,
     },
     {
-      href: "/admin/configuraciones",
-      title: "Ajustes de venta",
-      description: "Configura WhatsApp y los datos principales de la tienda.",
-      icon: Settings2,
+      href: "/admin/sedes",
+      title: "Gestionar sedes",
+      description: "Configura direcciones y el WhatsApp que recibe cada pedido.",
+      icon: MapPinned,
     },
   ];
 
@@ -87,6 +87,7 @@ export default async function AdminHomePage() {
     <>
       <AdminTopbar
         title="Resumen operativo"
+        backHref={null}
         actions={
           <Link
             href="/admin/productos"
