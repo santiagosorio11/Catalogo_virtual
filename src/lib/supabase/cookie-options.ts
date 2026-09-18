@@ -1,9 +1,9 @@
 const isProduction = process.env.NODE_ENV === "production";
 
 /**
- * Authentication is rendered inside a cross-site GHL iframe in production.
+ * Authentication is rendered inside a cross-site CRM iframe in production.
  * SameSite=None makes that session eligible in the iframe, while Partitioned
- * keeps the cookie isolated to the GHL top-level site on browsers with CHIPS.
+ * keeps the cookie isolated to the CRM top-level site on browsers with CHIPS.
  */
 export const authCookieOptions = {
   path: "/",

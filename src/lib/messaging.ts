@@ -1,23 +1,68 @@
 import { formatCOP } from "@/lib/currency";
 import type { DeliveryMethod, OrderWithItems } from "@/lib/types";
 
+/**
+ * Caracteres representables en GSM-7. Cualquier otro (á, í, ó, ú, ¿, …) obliga
+ * al operador a codificar el SMS en UCS-2, que reduce el segmento de 153 a 67
+ * caracteres. Por eso la cotización se arma en texto plano y sin viñetas.
+ */
+const GSM7 =
+  "@£$¥èéùìòÇØøÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?" +
+  "¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà" +
+  "\n\r";
+const GSM7_EXTENDED = "^{}\\[~]|€";
+
+/**
+ * Tope de la cotizacion. La mayoria de operadores rechaza concatenaciones de
+ * mas de 10 segmentos; con acentos (UCS-2) eso son ~670 caracteres, asi que
+ * 1600 deja margen para textos sin acentos y sigue siendo un limite sensato.
+ */
+export const SMS_MAX_LENGTH = 1600;
+
+export interface SmsCost {
+  characters: number;
+  encoding: "GSM-7" | "UCS-2";
+  segments: number;
+}
+
+/** Cuenta caracteres y segmentos para que el asesor vea el costo antes de enviar. */
+export function estimateSmsCost(message: string): SmsCost {
+  let units = 0;
+  let isGsm7 = true;
+
+  for (const char of message) {
+    if (GSM7.includes(char)) {
+      units += 1;
+    } else if (GSM7_EXTENDED.includes(char)) {
+      units += 2;
+    } else {
+      isGsm7 = false;
+      break;
+    }
+  }
+
+  const characters = [...message].length;
+  if (!isGsm7) {
+    const segments = characters === 0 ? 0 : characters <= 70 ? 1 : Math.ceil(characters / 67);
+    return { characters, encoding: "UCS-2", segments };
+  }
+
+  const segments = units === 0 ? 0 : units <= 160 ? 1 : Math.ceil(units / 153);
+  return { characters, encoding: "GSM-7", segments };
+}
+
 export function buildQuoteMessage(order: OrderWithItems): string {
-  const lines = [
-    `Hola ${order.customer_name},`,
-    "",
-    `Te compartimos la cotización de tu solicitud #${order.order_number}:`,
-    "",
-  ];
+  const lines = [`Hola ${order.customer_name}, esta es la cotizacion de tu solicitud #${order.order_number}:`];
 
   for (const item of order.items) {
     const label = item.variant_label_snapshot
       ? `${item.product_name_snapshot} (${item.variant_label_snapshot})`
       : item.product_name_snapshot;
-    lines.push(`• ${label} x${item.quantity} — ${formatCOP(item.subtotal)}`);
+    lines.push(`- ${label} x${item.quantity}: ${formatCOP(item.subtotal)}`);
   }
 
-  lines.push("", `*Total: ${formatCOP(order.total)}*`, "");
-  lines.push("Si estás de acuerdo con la cotización, respóndenos por este medio para continuar.");
+  lines.push(`Total: ${formatCOP(order.total)}`);
+  lines.push("Responde este mensaje si deseas continuar.");
   return lines.join("\n");
 }
 

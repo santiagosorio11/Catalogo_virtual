@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { ModalPortal } from "./ModalPortal";
 import Image from "next/image";
 import { X } from "lucide-react";
 import {
@@ -8,6 +9,7 @@ import {
   updateCategory,
   uploadCategoryImage,
 } from "@/actions/categories";
+import { useToast } from "@/components/ui/Toast";
 import type { Category } from "@/lib/types";
 
 export function CategoryFormModal({
@@ -19,23 +21,46 @@ export function CategoryFormModal({
   category?: Category | null;
   onClose: () => void;
 }) {
+  const toast = useToast();
   const [name, setName] = useState(category?.name ?? "");
   const [imageUrl, setImageUrl] = useState<string | null>(category?.image_url ?? null);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const entityLabel = parentId ? "subcategoría" : "categoría";
 
   async function handleImagePick(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file || !category) return;
+    const toastId = toast.loading("Subiendo imagen...", { description: file.name });
     const formData = new FormData();
     formData.append("file", file);
     const result = await uploadCategoryImage(category.id, formData);
-    if ("url" in result) setImageUrl(result.url ?? null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    if ("error" in result) {
+      toast.update(toastId, {
+        variant: "error",
+        title: "No se pudo subir la imagen",
+        description: result.error,
+      });
+      return;
+    }
+
+    setImageUrl(result.url ?? null);
+    toast.update(toastId, {
+      variant: "success",
+      title: "Imagen subida correctamente",
+      description: null,
+    });
   }
 
   async function handleSave() {
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      setError("Escribe un nombre para continuar.");
+      toast.warning(`Escribe el nombre de la ${entityLabel}`);
+      return;
+    }
     setSaving(true);
     setError(null);
 
@@ -45,15 +70,36 @@ export function CategoryFormModal({
 
     setSaving(false);
     if (result && "error" in result) {
-      setError(result.error ?? "Ocurrió un error.");
+      const message = result.error ?? "Ocurrió un error.";
+      setError(message);
+      toast.error(
+        category
+          ? `No se pudo actualizar la ${entityLabel}`
+          : `No se pudo crear la ${entityLabel}`,
+        { description: message }
+      );
       return;
     }
+
+    toast.success(
+      category
+        ? `${parentId ? "Subcategoría" : "Categoría"} actualizada`
+        : `${parentId ? "Subcategoría" : "Categoría"} creada`,
+      { description: name.trim() }
+    );
     onClose();
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" role="presentation">
-      <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="category-modal-title">
+    <ModalPortal>
+      <div
+        className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/40 p-4 sm:items-center sm:p-6"
+        role="presentation"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) onClose();
+        }}
+      >
+        <div className="my-auto w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="category-modal-title">
         <div className="mb-4 flex items-center justify-between">
           <h2 id="category-modal-title" className="text-base font-semibold">
             {category ? "Editar categoría" : parentId ? "Nueva subcategoría" : "Nueva categoría"}
@@ -115,9 +161,10 @@ export function CategoryFormModal({
           disabled={saving || !name.trim()}
           className="mt-4 w-full rounded-lg bg-brand py-2.5 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
         >
-          {saving ? "Guardando..." : "Guardar"}
-        </button>
+            {saving ? "Guardando..." : "Guardar"}
+          </button>
+        </div>
       </div>
-    </div>
+    </ModalPortal>
   );
 }

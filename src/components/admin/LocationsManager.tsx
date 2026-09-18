@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { ModalPortal } from "./ModalPortal";
 import { useRouter } from "next/navigation";
 import {
   Building2,
@@ -19,10 +20,12 @@ import {
   updateStoreLocation,
   type StoreLocationInput,
 } from "@/actions/locations";
+import { useToast } from "@/components/ui/Toast";
 import type { StoreLocation } from "@/lib/types";
 
 function LocationToggle({ location }: { location: StoreLocation }) {
   const router = useRouter();
+  const toast = useToast();
   const [checked, setChecked] = useState(location.active);
   const [pending, startTransition] = useTransition();
 
@@ -31,7 +34,16 @@ function LocationToggle({ location }: { location: StoreLocation }) {
     setChecked(next);
     startTransition(async () => {
       const result = await setStoreLocationActive(location.id, next);
-      if (result && "error" in result) setChecked(!next);
+      if (result && "error" in result) {
+        setChecked(!next);
+        toast.error("No se pudo cambiar la visibilidad de la sede", {
+          description: result.error,
+        });
+        return;
+      }
+      toast.success(next ? "Sede activada" : "Sede oculta en el checkout", {
+        description: location.name,
+      });
       router.refresh();
     });
   }
@@ -73,6 +85,7 @@ function LocationModal({
     whatsappNumber: location?.whatsapp_number ?? "57",
     active: location?.active ?? true,
   });
+  const toast = useToast();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -89,9 +102,16 @@ function LocationModal({
       : await createStoreLocation(form);
     setSaving(false);
     if (result && "error" in result) {
-      setError(result.error ?? "No fue posible guardar la sede.");
+      const message = result.error ?? "No fue posible guardar la sede.";
+      setError(message);
+      toast.error(location ? "No se pudo actualizar la sede" : "No se pudo crear la sede", {
+        description: message,
+      });
       return;
     }
+    toast.success(location ? "Sede actualizada" : "Sede creada", {
+      description: form.name.trim(),
+    });
     onClose();
   }
 
@@ -99,14 +119,21 @@ function LocationModal({
     "mt-1.5 w-full rounded-xl border border-slate-200 px-3.5 py-3 text-sm outline-none transition focus:border-orbita-cyan focus:ring-2 focus:ring-orbita-cyan/15";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/45 px-4 py-8">
-      <form
-        onSubmit={handleSubmit}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="location-modal-title"
-        className="w-full max-w-xl rounded-2xl bg-white p-5 shadow-2xl sm:p-6"
+    <ModalPortal>
+      <div
+        className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/45 p-4 sm:items-center sm:p-6"
+        role="presentation"
+        onMouseDown={(event) => {
+          if (event.target === event.currentTarget) onClose();
+        }}
       >
+        <form
+          onSubmit={handleSubmit}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="location-modal-title"
+          className="my-auto w-full max-w-xl rounded-2xl bg-white p-5 shadow-2xl sm:p-6"
+        >
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-orbita-cyan-dark">
@@ -208,13 +235,15 @@ function LocationModal({
             {saving ? "Guardando..." : "Guardar sede"}
           </button>
         </div>
-      </form>
-    </div>
+        </form>
+      </div>
+    </ModalPortal>
   );
 }
 
 export function LocationsManager({ initial }: { initial: StoreLocation[] }) {
   const router = useRouter();
+  const toast = useToast();
   const [modal, setModal] = useState<StoreLocation | "new" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const activeCount = initial.filter((location) => location.active).length;
@@ -224,9 +253,12 @@ export function LocationsManager({ initial }: { initial: StoreLocation[] }) {
     setError(null);
     const result = await deleteStoreLocation(location.id);
     if (result && "error" in result) {
-      setError(result.error ?? "No fue posible eliminar la sede.");
+      const message = result.error ?? "No fue posible eliminar la sede.";
+      setError(message);
+      toast.error("No se pudo eliminar la sede", { description: message });
       return;
     }
+    toast.success("Sede eliminada", { description: location.name });
     router.refresh();
   }
 

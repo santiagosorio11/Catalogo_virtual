@@ -3,9 +3,9 @@
 Aplicación Next.js con dos experiencias conectadas a la misma base de datos:
 
 - Catálogo público mobile-first en `/`.
-- Dashboard operativo protegido en `/admin`, preparado para embeberse como iframe en HighLevel.
+- Dashboard operativo protegido en `/admin`, preparado para embeberse como iframe en el panel de Órbita IA.
 
-El panel permite administrar portada, categorías, productos, sedes y pedidos. Toda solicitud nueva entra en la etapa `Pendiente por cotizar`; un asesor puede crear pedidos manuales, revisar cada solicitud y enviar una cotización editable por WhatsApp desde HighLevel. Supabase gestiona autenticación y datos; las imágenes pueden almacenarse en Supabase Storage o Cloudflare R2 según el flujo utilizado.
+El panel permite administrar portada, categorías, productos, sedes y pedidos. Toda solicitud nueva entra en la etapa `Pendiente por cotizar`; un asesor puede crear pedidos manuales, revisar cada solicitud y enviar una cotización editable por WhatsApp desde Órbita IA. Supabase gestiona autenticación y datos; las imágenes pueden almacenarse en Supabase Storage o Cloudflare R2 según el flujo utilizado.
 
 ## Desarrollo local
 
@@ -16,12 +16,12 @@ El panel permite administrar portada, categorías, productos, sedes y pedidos. T
 
 ## Base de datos
 
-Las migraciones están en `supabase/migrations`. La migración `0006_orders_quotes_ghl.sql` retira las columnas antiguas de existencias y habilita pedidos manuales, cotizaciones y trazabilidad de GHL. No ejecutes migraciones contra un proyecto remoto sin revisar el entorno y el alcance.
+Las migraciones están en `supabase/migrations`. La migración `0006_orders_quotes_ghl.sql` retira las columnas antiguas de existencias y habilita pedidos manuales, cotizaciones y trazabilidad del CRM. No ejecutes migraciones contra un proyecto remoto sin revisar el entorno y el alcance.
 
 Para crear el primer usuario administrador usa Supabase Authentication o el helper `scripts/create-admin-user.mjs` con variables server-side temporales.
 
-## HighLevel
+## CRM de Órbita IA
 
-La integración server-side usa `GHL_API_KEY` (Private Integration Token) y `GHL_LOCATION_ID`. El token necesita los scopes `contacts.write` y `conversations/message.write`. Los datos del cliente se crean o actualizan al guardar el pedido y el resumen completo queda como nota del contacto.
+La integración server-side usa `ORBITA_CRM_API_KEY` (Private Integration Token) y `ORBITA_CRM_LOCATION_ID`. El token necesita los scopes `contacts.write` y `conversations/message.write`. Los datos del cliente se crean o actualizan al guardar el pedido y el resumen completo queda como nota del contacto.
 
-El paso a paso de publicación, iframe, sesión, variables y prueba controlada está en [docs/ghl-iframe-setup.md](docs/ghl-iframe-setup.md).
+El paso a paso de publicación, iframe, sesión, variables y prueba controlada está en [docs/orbita-iframe-setup.md](docs/orbita-iframe-setup.md).

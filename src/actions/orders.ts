@@ -3,12 +3,12 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import {
-  createGhlContactNote,
-  GhlConfigurationError,
-  sendGhlWhatsappMessage,
-  upsertGhlContact,
-} from "@/lib/ghl";
-import { buildOrderCrmNote } from "@/lib/whatsapp";
+  createCrmContactNote,
+  CrmConfigurationError,
+  sendCrmQuoteMessage,
+  upsertCrmContact,
+} from "@/lib/crm";
+import { buildOrderCrmNote, SMS_MAX_LENGTH } from "@/lib/messaging";
 import {
   ORDER_STATUS_LABELS,
   PAYMENT_STATUS_LABELS,
@@ -50,7 +50,7 @@ export interface CreateOrderResult {
   subtotal: number;
   locationName: string | null;
   locationAddress: string | null;
-  ghlSynced: boolean;
+  crmSynced: boolean;
   warning?: string;
 }
 
@@ -64,7 +64,7 @@ interface ResolvedOrderItem {
   subtotal: number;
 }
 
-type GhlSyncState = {
+type CrmSyncState = {
   contactId: string | null;
   status: "sin_configurar" | "sincronizado" | "error";
   error: string | null;
@@ -206,12 +206,12 @@ async function resolveItems(
   return { items: resolved };
 }
 
-async function prepareGhlContact(
+async function prepareCrmContact(
   input: Omit<CreateOrderInput, "items">,
   source: "catalogo" | "asesor"
-): Promise<GhlSyncState> {
+): Promise<CrmSyncState> {
   try {
-    const contactId = await upsertGhlContact({
+    const contactId = await upsertCrmContact({
       name: input.customerName,
       email: input.customerEmail,
       phone: input.customerPhone,
@@ -225,7 +225,7 @@ async function prepareGhlContact(
   } catch (error) {
     return {
       contactId: null,
-      status: error instanceof GhlConfigurationError ? "sin_configurar" : "error",
+      status: error instanceof CrmConfigurationError ? "sin_configurar" : "error",
       error: errorMessage(error).slice(0, 500),
     };
   }
@@ -246,7 +246,7 @@ function toRpcItems(items: ResolvedOrderItem[]) {
 function buildRpcInput(
   input: Omit<CreateOrderInput, "items">,
   items: ResolvedOrderItem[],
-  ghl: GhlSyncState
+  crm: CrmSyncState
 ) {
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
   return {
@@ -263,9 +263,9 @@ function buildRpcInput(
     p_subtotal: subtotal,
     p_total: subtotal,
     p_location_id: input.locationId || null,
-    p_ghl_contact_id: ghl.contactId,
-    p_ghl_sync_status: ghl.status,
-    p_ghl_sync_error: ghl.error,
+    p_ghl_contact_id: crm.contactId,
+    p_ghl_sync_status: crm.status,
+    p_ghl_sync_error: crm.error,
     p_items: toRpcItems(items),
   };
 }
@@ -282,7 +282,7 @@ async function attachOrderNote(input: {
   if (!input.contactId) return null;
 
   try {
-    await createGhlContactNote(
+    await createCrmContactNote(
       input.contactId,
       `Solicitud #${input.orderNumber} - pendiente por cotizar`,
       buildOrderCrmNote({
@@ -312,7 +312,7 @@ async function attachOrderNote(input: {
     );
     return null;
   } catch {
-    return "El contacto se sincronizó, pero el resumen del pedido no pudo agregarse a GHL.";
+    return "El contacto se sincronizó, pero el resumen del pedido no pudo agregarse al CRM.";
   }
 }
 
@@ -332,8 +332,8 @@ export async function createOrder(
   if ("error" in locationResult) return locationResult;
 
   const customerInput: Omit<CreateOrderInput, "items"> = input;
-  const ghl = await prepareGhlContact(customerInput, "catalogo");
-  const rpcInput = buildRpcInput(customerInput, resolved.items, ghl);
+  const crm = await prepareCrmContact(customerInput, "catalogo");
+  const rpcInput = buildRpcInput(customerInput, resolved.items, crm);
   const supabase = await createClient();
 
   const { data, error } = await supabase.rpc("create_order_with_items", rpcInput);
@@ -344,7 +344,7 @@ export async function createOrder(
 
   const order = data[0];
   const noteWarning = await attachOrderNote({
-    contactId: ghl.contactId,
+    contactId: crm.contactId,
     orderNumber: order.order_number,
     source: "catalogo",
     customer: customerInput,
@@ -362,8 +362,8 @@ export async function createOrder(
     subtotal: rpcInput.p_subtotal,
     locationName: order.location_name ?? null,
     locationAddress: order.location_address ?? null,
-    ghlSynced: ghl.status === "sincronizado",
-    warning: ghl.error ?? noteWarning ?? undefined,
+    crmSynced: crm.status === "sincronizado",
+    warning: crm.error ?? noteWarning ?? undefined,
   };
 }
 
@@ -386,8 +386,8 @@ export async function createManualOrder(
   if ("error" in locationResult) return locationResult;
 
   const customerInput: Omit<CreateOrderInput, "items"> = input;
-  const ghl = await prepareGhlContact(customerInput, "asesor");
-  const rpcInput = buildRpcInput(customerInput, resolved.items, ghl);
+  const crm = await prepareCrmContact(customerInput, "asesor");
+  const rpcInput = buildRpcInput(customerInput, resolved.items, crm);
   const { data, error } = await supabase.rpc("admin_create_order_with_items", rpcInput);
 
   if (error || !data || data.length === 0) {
@@ -397,7 +397,7 @@ export async function createManualOrder(
   const order = data[0];
   const location = locationResult.location;
   const noteWarning = await attachOrderNote({
-    contactId: ghl.contactId,
+    contactId: crm.contactId,
     orderNumber: order.order_number,
     source: "asesor",
     customer: customerInput,
@@ -415,8 +415,8 @@ export async function createManualOrder(
     subtotal: rpcInput.p_subtotal,
     locationName: location?.name ?? null,
     locationAddress: location?.address ?? null,
-    ghlSynced: ghl.status === "sincronizado",
-    warning: ghl.error ?? noteWarning ?? undefined,
+    crmSynced: crm.status === "sincronizado",
+    warning: crm.error ?? noteWarning ?? undefined,
   };
 }
 
@@ -450,8 +450,10 @@ export async function updatePaymentStatus(orderId: string, paymentStatus: Paymen
 export async function sendOrderQuote(orderId: string, message: string) {
   const trimmedMessage = message.trim();
   if (!trimmedMessage) return { error: "Escribe el mensaje de la cotización." };
-  if (trimmedMessage.length > 5000) {
-    return { error: "El mensaje de la cotización no puede superar 5.000 caracteres." };
+  if (trimmedMessage.length > SMS_MAX_LENGTH) {
+    return {
+      error: `El mensaje de la cotización no puede superar ${SMS_MAX_LENGTH} caracteres.`,
+    };
   }
 
   const { supabase, user } = await requireAdmin();
@@ -470,7 +472,7 @@ export async function sendOrderQuote(orderId: string, message: string) {
 
   let contactId: string;
   try {
-    contactId = await upsertGhlContact({
+    contactId = await upsertCrmContact({
       name: order.customer_name,
       email: order.customer_email,
       phone: order.customer_phone,
@@ -485,7 +487,7 @@ export async function sendOrderQuote(orderId: string, message: string) {
     await supabase
       .from("orders")
       .update({
-        ghl_sync_status: error instanceof GhlConfigurationError ? "sin_configurar" : "error",
+        ghl_sync_status: error instanceof CrmConfigurationError ? "sin_configurar" : "error",
         ghl_sync_error: message,
       })
       .eq("id", orderId);
@@ -494,7 +496,7 @@ export async function sendOrderQuote(orderId: string, message: string) {
   }
 
   try {
-    const sent = await sendGhlWhatsappMessage(contactId, trimmedMessage);
+    const sent = await sendCrmQuoteMessage(contactId, trimmedMessage);
     const { error: updateError } = await supabase
       .from("orders")
       .update({
@@ -519,7 +521,7 @@ export async function sendOrderQuote(orderId: string, message: string) {
       return {
         success: true,
         warning:
-          "La cotización fue enviada, pero no se pudo actualizar su estado local. No la reenvíes sin verificar la conversación en GHL.",
+          "La cotización fue enviada, pero no se pudo actualizar su estado local. No la reenvíes sin verificar la conversación en el CRM.",
       };
     }
     return { success: true };

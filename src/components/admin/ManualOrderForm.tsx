@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Trash2 } from "lucide-react";
 import clsx from "clsx";
 import { createManualOrder } from "@/actions/orders";
+import { useToast } from "@/components/ui/Toast";
 import { formatCOP } from "@/lib/currency";
 import type { DeliveryMethod, StoreLocation } from "@/lib/types";
 
@@ -35,6 +36,7 @@ export function ManualOrderForm({
   locations: StoreLocation[];
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [customerName, setCustomerName] = useState("");
   const [customerCedula, setCustomerCedula] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -109,7 +111,15 @@ export function ManualOrderForm({
     setSubmitting(false);
     if ("error" in result) {
       setError(result.error);
+      toast.error("No se pudo crear el pedido", { description: result.error });
       return;
+    }
+
+    toast.success(`Pedido #${result.orderNumber} creado`, {
+      description: `${customerName.trim()} · ${formatCOP(result.subtotal)}`,
+    });
+    if (result.warning) {
+      toast.warning("Revisa la sincronización con el CRM", { description: result.warning });
     }
 
     router.push(`/admin/pedidos/${result.orderId}`);
@@ -122,7 +132,7 @@ export function ManualOrderForm({
           <div className="mb-4">
             <h2 className="font-semibold text-slate-950">Datos del cliente</h2>
             <p className="mt-1 text-xs leading-5 text-slate-500">
-              Al guardar, estos datos se crearán o actualizarán en la subcuenta de HighLevel.
+              Al guardar, estos datos se crearán o actualizarán en el CRM de Órbita IA.
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
@@ -338,7 +348,7 @@ export function ManualOrderForm({
           <p className="text-xs font-medium uppercase tracking-[0.16em] text-orbita-cyan">Total estimado</p>
           <p className="mt-2 text-3xl font-semibold tracking-[-0.04em]">{formatCOP(total)}</p>
           <p className="mt-3 text-xs leading-5 text-white/50">
-            El pedido quedará en Pendiente por cotizar antes de enviarlo por WhatsApp.
+            El pedido quedará en Pendiente por cotizar antes de enviar la cotización por SMS.
           </p>
           {error && (
             <p role="alert" className="mt-4 rounded-xl bg-red-500/15 px-3 py-2.5 text-sm text-red-100">

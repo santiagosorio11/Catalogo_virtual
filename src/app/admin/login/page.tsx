@@ -4,8 +4,10 @@ import Link from "next/link";
 import { useState } from "react";
 import { ArrowRight, ExternalLink, LockKeyhole, ShieldCheck } from "lucide-react";
 import { login } from "@/actions/auth";
+import { useToast } from "@/components/ui/Toast";
 
 export default function AdminLoginPage() {
+  const toast = useToast();
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -15,7 +17,10 @@ export default function AdminLoginPage() {
     const result = await login(formData);
     setSubmitting(false);
 
-    if (result && "error" in result) setError(result.error);
+    if (result && "error" in result) {
+      setError(result.error);
+      toast.error("No pudimos iniciar tu sesión", { description: result.error });
+    }
   }
 
   return (
@@ -33,7 +38,7 @@ export default function AdminLoginPage() {
               Tu catálogo listo para vender y operar.
             </h1>
             <p className="mt-6 max-w-lg text-base leading-7 text-white/60">
-              Actualiza productos, prepara cotizaciones y revisa pedidos sin salir de tu cuenta de HighLevel.
+              Actualiza productos, prepara cotizaciones y revisa pedidos sin salir de tu panel de Órbita IA.
             </p>
 
             <div className="mt-10 grid grid-cols-3 gap-px overflow-hidden rounded-2xl bg-white/10">

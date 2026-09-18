@@ -2,23 +2,25 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { AlertCircle, CheckCircle2, MessageCircle, Send } from "lucide-react";
+import { AlertCircle, CheckCircle2, MessageSquare, Send } from "lucide-react";
 import { formatCOP } from "@/lib/currency";
-import { buildQuoteMessage } from "@/lib/whatsapp";
+import { buildQuoteMessage, estimateSmsCost, SMS_MAX_LENGTH } from "@/lib/messaging";
 import { sendOrderQuote, updateOrderStatus, updatePaymentStatus } from "@/actions/orders";
+import { useToast } from "@/components/ui/Toast";
 import { ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS } from "@/lib/types";
 import { StatusBadge, PaymentBadge } from "./OrdersTable";
 import type { OrderStatus, OrderWithItems, PaymentStatus } from "@/lib/types";
 
-const GHL_STATUS_COPY = {
+const CRM_STATUS_COPY = {
   pendiente: { label: "Sincronización pendiente", className: "bg-slate-100 text-slate-600" },
-  sin_configurar: { label: "GHL sin configurar", className: "bg-amber-50 text-amber-700" },
+  sin_configurar: { label: "CRM sin configurar", className: "bg-amber-50 text-amber-700" },
   sincronizado: { label: "Contacto sincronizado", className: "bg-emerald-50 text-emerald-700" },
   error: { label: "Error de sincronización", className: "bg-red-50 text-red-700" },
 } as const;
 
 export function OrderDetail({ order }: { order: OrderWithItems }) {
   const router = useRouter();
+  const toast = useToast();
   const [status, setStatus] = useState<OrderStatus>(order.status);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(order.payment_status);
   const [quoteMessage, setQuoteMessage] = useState(order.quote_message ?? buildQuoteMessage(order));
@@ -27,8 +29,9 @@ export function OrderDetail({ order }: { order: OrderWithItems }) {
     kind: "success" | "warning" | "error";
     message: string;
   } | null>(null);
-  const ghlStatus = GHL_STATUS_COPY[order.ghl_sync_status ?? "pendiente"];
+  const crmStatus = CRM_STATUS_COPY[order.ghl_sync_status ?? "pendiente"];
   const canSendQuote = status === "pendiente_cotizacion" || status === "cotizacion_enviada";
+  const smsCost = estimateSmsCost(quoteMessage);
 
   async function handleStatusChange(next: OrderStatus) {
     const previous = status;
@@ -37,9 +40,13 @@ export function OrderDetail({ order }: { order: OrderWithItems }) {
     if ("error" in result && result.error) {
       setStatus(previous);
       setFeedback({ kind: "error", message: result.error });
+      toast.error("No se pudo cambiar el estado del pedido", { description: result.error });
       return;
     }
     setFeedback(null);
+    toast.success("Estado del pedido actualizado", {
+      description: ORDER_STATUS_LABELS[next],
+    });
     router.refresh();
   }
 
@@ -50,27 +57,42 @@ export function OrderDetail({ order }: { order: OrderWithItems }) {
     if ("error" in result && result.error) {
       setPaymentStatus(previous);
       setFeedback({ kind: "error", message: result.error });
+      toast.error("No se pudo cambiar el estado del pago", { description: result.error });
       return;
     }
     setFeedback(null);
+    toast.success("Estado del pago actualizado", {
+      description: PAYMENT_STATUS_LABELS[next],
+    });
     router.refresh();
   }
 
   async function handleSendQuote() {
     setSendingQuote(true);
     setFeedback(null);
+    const toastId = toast.loading("Enviando cotización por SMS...");
     const result = await sendOrderQuote(order.id, quoteMessage);
     setSendingQuote(false);
 
     if ("error" in result && result.error) {
       setFeedback({ kind: "error", message: result.error });
+      toast.update(toastId, {
+        variant: "error",
+        title: "No se pudo enviar la cotización",
+        description: result.error,
+      });
       return;
     }
 
     setStatus("cotizacion_enviada");
     setFeedback({
       kind: result.warning ? "warning" : "success",
-      message: result.warning ?? "Cotización enviada por WhatsApp desde HighLevel.",
+      message: result.warning ?? "Cotización enviada por SMS desde Órbita IA.",
+    });
+    toast.update(toastId, {
+      variant: result.warning ? "warning" : "success",
+      title: result.warning ? "Cotización enviada con advertencias" : "Cotización enviada",
+      description: result.warning ?? `Pedido #${order.order_number} por SMS.`,
     });
     router.refresh();
   }
@@ -113,17 +135,17 @@ export function OrderDetail({ order }: { order: OrderWithItems }) {
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3">
                   <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-orbita-cyan-dark shadow-sm">
-                    <MessageCircle size={19} />
+                    <MessageSquare size={19} />
                   </div>
                   <div>
-                    <h2 className="font-semibold text-orbita-navy">Cotización por WhatsApp</h2>
+                    <h2 className="font-semibold text-orbita-navy">Cotización por SMS</h2>
                     <p className="mt-1 text-xs leading-5 text-slate-500">
-                      Confirma disponibilidad, revisa el texto y envíalo desde la conversación de HighLevel.
+                      Confirma disponibilidad y revisa el texto. Se envía como SMS desde el proveedor configurado.
                     </p>
                   </div>
                 </div>
-                <span className={`hidden shrink-0 rounded-full px-2.5 py-1 text-xs font-medium sm:block ${ghlStatus.className}`}>
-                  {ghlStatus.label}
+                <span className={`hidden shrink-0 rounded-full px-2.5 py-1 text-xs font-medium sm:block ${crmStatus.className}`}>
+                  {crmStatus.label}
                 </span>
               </div>
             </div>
@@ -132,16 +154,20 @@ export function OrderDetail({ order }: { order: OrderWithItems }) {
                 value={quoteMessage}
                 onChange={(event) => setQuoteMessage(event.target.value)}
                 rows={10}
-                maxLength={5000}
+                maxLength={SMS_MAX_LENGTH}
                 disabled={!canSendQuote}
                 aria-label="Mensaje de la cotización"
                 className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm leading-6 outline-none focus:border-orbita-cyan-dark focus:ring-4 focus:ring-orbita-cyan/10 disabled:bg-slate-50 disabled:text-slate-400"
               />
               <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="text-xs text-slate-500">
-                  <span className={`inline-flex rounded-full px-2.5 py-1 sm:hidden ${ghlStatus.className}`}>
-                    {ghlStatus.label}
+                  <span className={`inline-flex rounded-full px-2.5 py-1 sm:hidden ${crmStatus.className}`}>
+                    {crmStatus.label}
                   </span>
+                  <p className="mt-2 sm:mt-0">
+                    {smsCost.characters}/{SMS_MAX_LENGTH} caracteres ·{" "}
+                    {smsCost.segments} {smsCost.segments === 1 ? "segmento" : "segmentos"} ({smsCost.encoding})
+                  </p>
                   {order.quote_sent_at && (
                     <p className="mt-2 sm:mt-0">
                       Último envío: {new Date(order.quote_sent_at).toLocaleString("es-CO")}
@@ -153,7 +179,7 @@ export function OrderDetail({ order }: { order: OrderWithItems }) {
                   type="button"
                   onClick={handleSendQuote}
                   disabled={sendingQuote || !canSendQuote || !quoteMessage.trim()}
-                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#20a464] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#198754] disabled:cursor-not-allowed disabled:opacity-50"
+                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-orbita-navy px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orbita-navy/90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Send size={16} />
                   {sendingQuote
