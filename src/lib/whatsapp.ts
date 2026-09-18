@@ -1,71 +1,78 @@
 import { formatCOP } from "@/lib/currency";
-import type { CartItem, DeliveryMethod } from "@/lib/types";
+import type { DeliveryMethod, OrderWithItems } from "@/lib/types";
 
-interface OrderSummaryInput {
-  orderNumber: number;
-  customerName: string;
-  customerCedula: string;
-  customerPhone: string;
-  deliveryMethod: DeliveryMethod;
-  address?: string;
-  addressDetails?: string;
-  city?: string;
-  department?: string;
-  locationName?: string | null;
-  locationAddress?: string | null;
-  notes?: string;
-  items: CartItem[];
-  subtotal: number;
-}
+export function buildQuoteMessage(order: OrderWithItems): string {
+  const lines = [
+    `Hola ${order.customer_name},`,
+    "",
+    `Te compartimos la cotización de tu solicitud #${order.order_number}:`,
+    "",
+  ];
 
-export function buildOrderSummaryText(input: OrderSummaryInput): string {
-  const lines: string[] = [];
-
-  lines.push(`*Pedido #${input.orderNumber}*`);
-  lines.push("");
-  lines.push("*Datos del cliente*");
-  lines.push(`Nombre: ${input.customerName}`);
-  lines.push(`Cédula: ${input.customerCedula}`);
-  lines.push(`Teléfono: ${input.customerPhone}`);
-  lines.push("");
-
-  if (input.locationName) {
-    lines.push("*Sede asignada*");
-    lines.push(input.locationName);
-    if (input.locationAddress) lines.push(input.locationAddress);
-    lines.push("");
+  for (const item of order.items) {
+    const label = item.variant_label_snapshot
+      ? `${item.product_name_snapshot} (${item.variant_label_snapshot})`
+      : item.product_name_snapshot;
+    lines.push(`• ${label} x${item.quantity} — ${formatCOP(item.subtotal)}`);
   }
 
-  if (input.deliveryMethod === "domicilio") {
-    lines.push("*Entrega a domicilio*");
-    lines.push(`Dirección: ${input.address ?? ""}`);
-    if (input.addressDetails) lines.push(`Detalles: ${input.addressDetails}`);
-    lines.push(`Ciudad: ${input.city ?? ""}`);
-    lines.push(`Departamento: ${input.department ?? ""}`);
-  } else {
-    lines.push("*Recoger en tienda*");
-  }
-  lines.push("");
-
-  lines.push("*Productos*");
-  for (const item of input.items) {
-    const label = item.variantLabel ? `${item.name} (${item.variantLabel})` : item.name;
-    lines.push(
-      `• ${label} x${item.quantity} — ${formatCOP(item.unitPrice * item.quantity)}`
-    );
-  }
-  lines.push("");
-  lines.push(`*Total: ${formatCOP(input.subtotal)}*`);
-
-  if (input.notes) {
-    lines.push("");
-    lines.push(`Notas: ${input.notes}`);
-  }
-
+  lines.push("", `*Total: ${formatCOP(order.total)}*`, "");
+  lines.push("Si estás de acuerdo con la cotización, respóndenos por este medio para continuar.");
   return lines.join("\n");
 }
 
-export function buildWhatsAppLink(phoneNumber: string, text: string): string {
-  const digitsOnly = phoneNumber.replace(/\D/g, "");
-  return `https://wa.me/${digitsOnly}?text=${encodeURIComponent(text)}`;
+export function buildOrderCrmNote(order: {
+  orderNumber: number;
+  source: "catalogo" | "asesor";
+  customerName: string;
+  customerEmail?: string | null;
+  customerCedula: string;
+  customerPhone: string;
+  deliveryMethod: DeliveryMethod;
+  address?: string | null;
+  addressDetails?: string | null;
+  city?: string | null;
+  department?: string | null;
+  locationName?: string | null;
+  notes?: string | null;
+  items: Array<{
+    productName: string;
+    variantLabel?: string | null;
+    quantity: number;
+    unitPrice: number;
+    subtotal: number;
+  }>;
+  subtotal: number;
+  total: number;
+}): string {
+  const lines = [
+    `Solicitud #${order.orderNumber}`,
+    `Origen: ${order.source === "asesor" ? "Creada por asesor" : "Catálogo web"}`,
+    "Estado: Pendiente por cotizar",
+    "",
+    `Cliente: ${order.customerName}`,
+    `Teléfono: ${order.customerPhone}`,
+    `Correo: ${order.customerEmail || "No informado"}`,
+    `Cédula: ${order.customerCedula}`,
+    "",
+    `Entrega: ${order.deliveryMethod === "domicilio" ? "Domicilio" : "Recoger en tienda"}`,
+  ];
+
+  if (order.locationName) lines.push(`Sede: ${order.locationName}`);
+  if (order.address) lines.push(`Dirección: ${order.address}`);
+  if (order.addressDetails) lines.push(`Detalles: ${order.addressDetails}`);
+  if (order.city || order.department) {
+    lines.push(`Ciudad / departamento: ${[order.city, order.department].filter(Boolean).join(", ")}`);
+  }
+
+  lines.push("", "Productos:");
+  for (const item of order.items) {
+    const label = item.variantLabel
+      ? `${item.productName} (${item.variantLabel})`
+      : item.productName;
+    lines.push(`- ${label} x${item.quantity} | ${formatCOP(item.unitPrice)} | ${formatCOP(item.subtotal)}`);
+  }
+  lines.push("", `Subtotal: ${formatCOP(order.subtotal)}`, `Total: ${formatCOP(order.total)}`);
+  if (order.notes) lines.push("", `Notas: ${order.notes}`);
+  return lines.join("\n");
 }

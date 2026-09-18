@@ -6,15 +6,12 @@ import clsx from "clsx";
 import { ArrowLeft, MapPin } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import { formatCOP } from "@/lib/currency";
-import { buildOrderSummaryText, buildWhatsAppLink } from "@/lib/whatsapp";
 import { createOrder } from "@/actions/orders";
 import type { DeliveryMethod, StoreLocation } from "@/lib/types";
 
 export function CheckoutForm({
-  whatsappNumber,
   locations,
 }: {
-  whatsappNumber: string | null;
   locations: StoreLocation[];
 }) {
   const { items, subtotal, clear } = useCart();
@@ -23,6 +20,7 @@ export function CheckoutForm({
   const [name, setName] = useState("");
   const [cedula, setCedula] = useState("");
   const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
   const [address, setAddress] = useState("");
   const [addressDetails, setAddressDetails] = useState("");
   const [city, setCity] = useState("");
@@ -33,7 +31,6 @@ export function CheckoutForm({
   const [error, setError] = useState<string | null>(null);
   const [confirmation, setConfirmation] = useState<{
     orderNumber: number;
-    whatsappLink: string | null;
     locationName: string | null;
   } | null>(null);
   const selectedLocation = locations.find((location) => location.id === locationId) ?? null;
@@ -52,6 +49,7 @@ export function CheckoutForm({
       customerName: name,
       customerCedula: cedula,
       customerPhone: phone,
+      customerEmail: email,
       locationId: selectedLocation?.id,
       deliveryMethod,
       address: deliveryMethod === "domicilio" ? address : undefined,
@@ -69,34 +67,8 @@ export function CheckoutForm({
       return;
     }
 
-    let whatsappLink: string | null = null;
-    const destinationWhatsApp = result.whatsappNumber ?? whatsappNumber;
-    if (destinationWhatsApp) {
-      const text = buildOrderSummaryText({
-        orderNumber: result.orderNumber,
-        customerName: name,
-        customerCedula: cedula,
-        customerPhone: phone,
-        deliveryMethod,
-        address,
-        addressDetails,
-        city,
-        department,
-        locationName: result.locationName,
-        locationAddress: result.locationAddress,
-        notes,
-        items,
-        subtotal: result.subtotal,
-      });
-      whatsappLink = buildWhatsAppLink(destinationWhatsApp, text);
-      // Best-effort: many browsers block window.open() once it follows an
-      // await, so the button below is the reliable fallback.
-      window.open(whatsappLink, "_blank");
-    }
-
     setConfirmation({
       orderNumber: result.orderNumber,
-      whatsappLink,
       locationName: result.locationName,
     });
     clear();
@@ -110,9 +82,7 @@ export function CheckoutForm({
         </div>
         <h1 className="text-xl font-semibold">¡Pedido #{confirmation.orderNumber} recibido!</h1>
         <p className="mt-2 text-sm text-black/50">
-          {confirmation.whatsappLink
-            ? "Confirma el envío del resumen de tu pedido por WhatsApp."
-            : "Guarda tu número de pedido para hacerle seguimiento."}
+          Quedó pendiente por cotizar. Un asesor revisará los artículos y te enviará la cotización por WhatsApp.
         </p>
         {confirmation.locationName && (
           <p className="mt-2 rounded-full bg-orbita-cyan-soft px-3 py-1 text-xs font-semibold text-orbita-navy">
@@ -120,19 +90,9 @@ export function CheckoutForm({
           </p>
         )}
 
-        {confirmation.whatsappLink && (
-          <a
-            href={confirmation.whatsappLink}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="mt-6 rounded-lg bg-brand px-6 py-2.5 text-sm font-semibold text-white hover:bg-brand-dark"
-          >
-            Enviar por WhatsApp
-          </a>
-        )}
         <Link
           href="/"
-          className="mt-3 text-sm font-medium text-black/50 hover:text-black"
+          className="mt-6 text-sm font-medium text-black/50 hover:text-black"
         >
           Volver al catálogo
         </Link>
@@ -170,7 +130,7 @@ export function CheckoutForm({
               <div>
                 <h2 className="text-sm font-semibold text-orbita-navy">Sede que atenderá tu pedido</h2>
                 <p className="mt-0.5 text-xs leading-5 text-slate-500">
-                  El resumen se enviará directamente al WhatsApp de esta sede.
+                  Esta sede revisará la disponibilidad y preparará tu cotización.
                 </p>
               </div>
             </div>
@@ -218,9 +178,17 @@ export function CheckoutForm({
           />
           <input
             required
+            type="tel"
             placeholder="WhatsApp / Teléfono"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+            className="w-full rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
+          />
+          <input
+            type="email"
+            placeholder="Correo electrónico (opcional)"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="w-full rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
           />
         </section>
@@ -311,7 +279,7 @@ export function CheckoutForm({
           disabled={submitting}
           className="w-full rounded-lg bg-brand py-3 text-sm font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
         >
-          {submitting ? "Enviando..." : "Finalizar pedido por WhatsApp"}
+          {submitting ? "Enviando..." : "Solicitar cotización"}
         </button>
       </form>
     </main>

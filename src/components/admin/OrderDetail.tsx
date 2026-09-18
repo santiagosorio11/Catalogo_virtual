@@ -2,66 +2,197 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { AlertCircle, CheckCircle2, MessageCircle, Send } from "lucide-react";
 import { formatCOP } from "@/lib/currency";
-import { buildWhatsAppLink } from "@/lib/whatsapp";
-import { updateOrderStatus, updatePaymentStatus } from "@/actions/orders";
+import { buildQuoteMessage } from "@/lib/whatsapp";
+import { sendOrderQuote, updateOrderStatus, updatePaymentStatus } from "@/actions/orders";
 import { ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS } from "@/lib/types";
 import { StatusBadge, PaymentBadge } from "./OrdersTable";
 import type { OrderStatus, OrderWithItems, PaymentStatus } from "@/lib/types";
+
+const GHL_STATUS_COPY = {
+  pendiente: { label: "Sincronización pendiente", className: "bg-slate-100 text-slate-600" },
+  sin_configurar: { label: "GHL sin configurar", className: "bg-amber-50 text-amber-700" },
+  sincronizado: { label: "Contacto sincronizado", className: "bg-emerald-50 text-emerald-700" },
+  error: { label: "Error de sincronización", className: "bg-red-50 text-red-700" },
+} as const;
 
 export function OrderDetail({ order }: { order: OrderWithItems }) {
   const router = useRouter();
   const [status, setStatus] = useState<OrderStatus>(order.status);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>(order.payment_status);
+  const [quoteMessage, setQuoteMessage] = useState(order.quote_message ?? buildQuoteMessage(order));
+  const [sendingQuote, setSendingQuote] = useState(false);
+  const [feedback, setFeedback] = useState<{
+    kind: "success" | "warning" | "error";
+    message: string;
+  } | null>(null);
+  const ghlStatus = GHL_STATUS_COPY[order.ghl_sync_status ?? "pendiente"];
+  const canSendQuote = status === "pendiente_cotizacion" || status === "cotizacion_enviada";
 
   async function handleStatusChange(next: OrderStatus) {
+    const previous = status;
     setStatus(next);
-    await updateOrderStatus(order.id, next);
+    const result = await updateOrderStatus(order.id, next);
+    if ("error" in result && result.error) {
+      setStatus(previous);
+      setFeedback({ kind: "error", message: result.error });
+      return;
+    }
+    setFeedback(null);
     router.refresh();
   }
 
   async function handlePaymentChange(next: PaymentStatus) {
+    const previous = paymentStatus;
     setPaymentStatus(next);
-    await updatePaymentStatus(order.id, next);
+    const result = await updatePaymentStatus(order.id, next);
+    if ("error" in result && result.error) {
+      setPaymentStatus(previous);
+      setFeedback({ kind: "error", message: result.error });
+      return;
+    }
+    setFeedback(null);
     router.refresh();
   }
 
-  function handleSendPaymentLink() {
-    const text = `Hola ${order.customer_name}, te compartimos el resumen de tu pedido #${order.order_number} por un total de ${formatCOP(order.total)}. Quedamos atentos para coordinar el pago.`;
-    window.open(buildWhatsAppLink(order.customer_phone, text), "_blank");
+  async function handleSendQuote() {
+    setSendingQuote(true);
+    setFeedback(null);
+    const result = await sendOrderQuote(order.id, quoteMessage);
+    setSendingQuote(false);
+
+    if ("error" in result && result.error) {
+      setFeedback({ kind: "error", message: result.error });
+      return;
+    }
+
+    setStatus("cotizacion_enviada");
+    setFeedback({
+      kind: result.warning ? "warning" : "success",
+      message: result.warning ?? "Cotización enviada por WhatsApp desde HighLevel.",
+    });
+    router.refresh();
   }
 
   return (
     <div>
-      <div className="mb-5 flex items-center gap-3">
-        <h1 className="text-xl font-semibold">Pedido #{order.order_number}</h1>
+      <div className="mb-5 flex flex-wrap items-center gap-2.5">
+        <h1 className="mr-1 text-xl font-semibold">Pedido #{order.order_number}</h1>
         <StatusBadge status={status} />
         <PaymentBadge status={paymentStatus} />
+        <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+          {order.order_source === "asesor" ? "Creado por asesor" : "Catálogo web"}
+        </span>
       </div>
+
+      {feedback && (
+        <div
+          role="status"
+          className={`mb-5 flex items-start gap-2 rounded-xl px-3.5 py-3 text-sm ${
+            feedback.kind === "success"
+              ? "bg-emerald-50 text-emerald-700"
+              : feedback.kind === "warning"
+                ? "bg-amber-50 text-amber-800"
+                : "bg-red-50 text-red-700"
+          }`}
+        >
+          {feedback.kind === "success" ? (
+            <CheckCircle2 className="mt-0.5 shrink-0" size={17} />
+          ) : (
+            <AlertCircle className="mt-0.5 shrink-0" size={17} />
+          )}
+          <span>{feedback.message}</span>
+        </div>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          <section className="rounded-2xl border border-black/5 bg-white p-5">
-            <h2 className="mb-3 text-sm font-semibold text-black/60">Estado del pedido</h2>
-            <select
-              value={status}
-              onChange={(e) => handleStatusChange(e.target.value as OrderStatus)}
-              className="rounded-lg border border-black/10 px-3 py-2.5 text-sm"
-            >
-              {Object.entries(ORDER_STATUS_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
+          <section className="overflow-hidden rounded-2xl border border-orbita-cyan/30 bg-white">
+            <div className="border-b border-orbita-cyan/20 bg-orbita-cyan-soft/55 p-4 sm:p-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-orbita-cyan-dark shadow-sm">
+                    <MessageCircle size={19} />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-orbita-navy">Cotización por WhatsApp</h2>
+                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                      Confirma disponibilidad, revisa el texto y envíalo desde la conversación de HighLevel.
+                    </p>
+                  </div>
+                </div>
+                <span className={`hidden shrink-0 rounded-full px-2.5 py-1 text-xs font-medium sm:block ${ghlStatus.className}`}>
+                  {ghlStatus.label}
+                </span>
+              </div>
+            </div>
+            <div className="p-4 sm:p-5">
+              <textarea
+                value={quoteMessage}
+                onChange={(event) => setQuoteMessage(event.target.value)}
+                rows={10}
+                maxLength={5000}
+                disabled={!canSendQuote}
+                aria-label="Mensaje de la cotización"
+                className="w-full resize-y rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm leading-6 outline-none focus:border-orbita-cyan-dark focus:ring-4 focus:ring-orbita-cyan/10 disabled:bg-slate-50 disabled:text-slate-400"
+              />
+              <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="text-xs text-slate-500">
+                  <span className={`inline-flex rounded-full px-2.5 py-1 sm:hidden ${ghlStatus.className}`}>
+                    {ghlStatus.label}
+                  </span>
+                  {order.quote_sent_at && (
+                    <p className="mt-2 sm:mt-0">
+                      Último envío: {new Date(order.quote_sent_at).toLocaleString("es-CO")}
+                      {order.quote_sent_by_email ? ` · ${order.quote_sent_by_email}` : ""}
+                    </p>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={handleSendQuote}
+                  disabled={sendingQuote || !canSendQuote || !quoteMessage.trim()}
+                  className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#20a464] px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-[#198754] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <Send size={16} />
+                  {sendingQuote
+                    ? "Enviando..."
+                    : status === "cotizacion_enviada"
+                      ? "Reenviar cotización"
+                      : "Enviar cotización"}
+                </button>
+              </div>
+              {!canSendQuote && (
+                <p className="mt-3 text-xs text-slate-500">
+                  Para enviar o reenviar una cotización, cambia el pedido a Pendiente por cotizar o Cotización enviada.
+                </p>
+              )}
+              {order.ghl_sync_error && order.ghl_sync_status !== "sincronizado" && (
+                <p className="mt-3 rounded-xl bg-red-50 px-3 py-2.5 text-xs leading-5 text-red-700">
+                  {order.ghl_sync_error}
+                </p>
+              )}
+            </div>
           </section>
 
           <section className="rounded-2xl border border-black/5 bg-white p-5">
-            <h2 className="mb-3 text-sm font-semibold text-black/60">Información de pago</h2>
-            <div className="flex flex-wrap items-center gap-3">
+            <h2 className="mb-3 text-sm font-semibold text-black/60">Estado del pedido</h2>
+            <div className="flex flex-wrap gap-3">
+              <select
+                value={status}
+                onChange={(event) => handleStatusChange(event.target.value as OrderStatus)}
+                className="rounded-lg border border-black/10 px-3 py-2.5 text-sm"
+              >
+                {Object.entries(ORDER_STATUS_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
               <select
                 value={paymentStatus}
-                onChange={(e) => handlePaymentChange(e.target.value as PaymentStatus)}
+                onChange={(event) => handlePaymentChange(event.target.value as PaymentStatus)}
                 className="rounded-lg border border-black/10 px-3 py-2.5 text-sm"
               >
                 {Object.entries(PAYMENT_STATUS_LABELS).map(([value, label]) => (
@@ -70,12 +201,6 @@ export function OrderDetail({ order }: { order: OrderWithItems }) {
                   </option>
                 ))}
               </select>
-              <button
-                onClick={handleSendPaymentLink}
-                className="rounded-lg bg-brand px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-dark"
-              >
-                Enviar por WhatsApp
-              </button>
             </div>
           </section>
 
@@ -84,33 +209,35 @@ export function OrderDetail({ order }: { order: OrderWithItems }) {
             <p className="mb-3 text-xs text-black/40">
               {new Date(order.created_at).toLocaleString("es-CO")}
             </p>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-black/5 text-left text-xs uppercase text-black/40">
-                  <th className="py-2">Producto</th>
-                  <th className="py-2">Cantidad</th>
-                  <th className="py-2">Precio</th>
-                  <th className="py-2">Subtotal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {order.items.map((item) => (
-                  <tr key={item.id} className="border-b border-black/5 last:border-0">
-                    <td className="py-2.5">
-                      {item.product_name_snapshot}
-                      {item.variant_label_snapshot && (
-                        <span className="text-black/40"> ({item.variant_label_snapshot})</span>
-                      )}
-                    </td>
-                    <td className="py-2.5">{item.quantity}</td>
-                    <td className="py-2.5">{formatCOP(item.unit_price)}</td>
-                    <td className="py-2.5 font-medium">{formatCOP(item.subtotal)}</td>
+            <div className="overflow-x-auto">
+              <table className="min-w-[540px] w-full text-sm">
+                <thead>
+                  <tr className="border-b border-black/5 text-left text-xs uppercase text-black/40">
+                    <th className="py-2">Producto</th>
+                    <th className="py-2">Cantidad</th>
+                    <th className="py-2">Precio</th>
+                    <th className="py-2">Subtotal</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {order.items.map((item) => (
+                    <tr key={item.id} className="border-b border-black/5 last:border-0">
+                      <td className="py-2.5">
+                        {item.product_name_snapshot}
+                        {item.variant_label_snapshot && (
+                          <span className="text-black/40"> ({item.variant_label_snapshot})</span>
+                        )}
+                      </td>
+                      <td className="py-2.5">{item.quantity}</td>
+                      <td className="py-2.5">{formatCOP(item.unit_price)}</td>
+                      <td className="py-2.5 font-medium">{formatCOP(item.subtotal)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
             <div className="mt-3 flex justify-end border-t border-black/10 pt-3 text-sm">
-              <div className="w-40 space-y-1">
+              <div className="w-44 space-y-1">
                 <div className="flex justify-between">
                   <span className="text-black/50">Subtotal</span>
                   <span>{formatCOP(order.subtotal)}</span>
@@ -126,7 +253,7 @@ export function OrderDetail({ order }: { order: OrderWithItems }) {
           {order.notes && (
             <section className="rounded-2xl border border-black/5 bg-white p-5">
               <h2 className="mb-2 text-sm font-semibold text-black/60">Notas del pedido</h2>
-              <p className="text-sm text-black/70">{order.notes}</p>
+              <p className="whitespace-pre-line text-sm text-black/70">{order.notes}</p>
             </section>
           )}
         </div>
@@ -136,7 +263,15 @@ export function OrderDetail({ order }: { order: OrderWithItems }) {
             <h2 className="mb-3 text-sm font-semibold text-black/60">Comprador</h2>
             <p className="text-sm font-medium">{order.customer_name}</p>
             <p className="mt-1 text-sm text-black/50">Teléfono: {order.customer_phone}</p>
+            {order.customer_email && (
+              <p className="text-sm text-black/50">Correo: {order.customer_email}</p>
+            )}
             <p className="text-sm text-black/50">Cédula: {order.customer_cedula}</p>
+            {order.created_by_email && (
+              <p className="mt-3 border-t border-slate-100 pt-3 text-xs text-slate-400">
+                Registrado por {order.created_by_email}
+              </p>
+            )}
           </section>
 
           <section className="rounded-2xl border border-black/5 bg-white p-5">

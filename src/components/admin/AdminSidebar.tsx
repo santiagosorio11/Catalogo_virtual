@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import {
-  Boxes,
   ClipboardList,
   Grid3x3,
   Home,
@@ -20,7 +19,6 @@ const links = [
   { href: "/admin/home", label: "Portada", icon: Home },
   { href: "/admin/categorias", label: "Categorías", icon: Grid3x3 },
   { href: "/admin/productos", label: "Productos", icon: Package },
-  { href: "/admin/inventario", label: "Inventario", icon: Boxes },
   { href: "/admin/pedidos", label: "Pedidos", icon: ClipboardList },
   { href: "/admin/sedes", label: "Sedes", icon: MapPinned },
 ];

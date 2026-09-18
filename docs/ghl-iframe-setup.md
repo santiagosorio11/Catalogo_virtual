@@ -72,3 +72,22 @@ codex mcp list
 ```
 
 La autenticación abre OAuth en el navegador. No requiere guardar un PAT en el repositorio. Los scopes compatibles con Supabase están declarados en la configuración y las herramientas de escritura quedan configuradas para pedir aprobación.
+
+## 6. Sincronización de contactos y cotizaciones por WhatsApp
+
+El checkout y la creación manual de pedidos sincronizan el cliente con la subcuenta de HighLevel al guardar la solicitud. El pedido completo también se agrega como nota del contacto. El botón `Enviar cotización` usa la conversación de WhatsApp de HighLevel; no abre un enlace `wa.me` ni expone el token al navegador.
+
+Configura estas variables en el entorno del servidor:
+
+```env
+GHL_API_KEY=pit-REEMPLAZAR
+GHL_LOCATION_ID=REEMPLAZAR_ID_SUBCUENTA
+GHL_DEFAULT_PHONE_COUNTRY_CODE=57
+GHL_CONTACT_COUNTRY=CO
+```
+
+El Private Integration Token debe pertenecer a la subcuenta y tener, como mínimo, los scopes `contacts.write` y `conversations/message.write`. Si deseas guardar la cédula como un campo visible independiente, crea el custom field en GHL y agrega su id como `GHL_CEDULA_CUSTOM_FIELD_ID`; de todas formas, la cédula y el resto del pedido quedan incluidos en la nota.
+
+Si la subcuenta tiene varios remitentes o proveedores de WhatsApp, también puedes definir `GHL_WHATSAPP_FROM_NUMBER` y `GHL_CONVERSATION_PROVIDER_ID`. Sin `GHL_LOCATION_ID`, el pedido se guarda pero queda marcado como GHL sin configurar y la cotización no se reporta como enviada.
+
+Antes de operar en producción, aplica la migración `supabase/migrations/0006_orders_quotes_ghl.sql`, vuelve a desplegar las variables y prueba con un contacto autorizado. Un estado HTTP exitoso confirma que GHL aceptó el mensaje; la entrega final depende del canal de WhatsApp y de sus reglas de conversación o plantilla.

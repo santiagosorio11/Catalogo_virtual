@@ -24,7 +24,6 @@ create table if not exists products (
   price numeric(12,2) not null default 0,
   compare_at_price numeric(12,2),
   active boolean not null default true,
-  stock_quantity integer,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -41,7 +40,6 @@ create table if not exists product_variants (
   variant_name text not null,
   option_value text not null,
   price_override numeric(12,2),
-  stock_quantity integer not null default 0,
   sku text,
   sort_order integer not null default 0
 );
@@ -87,8 +85,8 @@ create table if not exists orders (
   city text,
   department text,
   notes text,
-  status text not null default 'pendiente'
-    check (status in ('pendiente','confirmado','preparando','enviado','entregado','cancelado')),
+  status text not null default 'pendiente_cotizacion'
+    check (status in ('pendiente_cotizacion','cotizacion_enviada','confirmado','preparando','enviado','entregado','cancelado')),
   payment_status text not null default 'pendiente' check (payment_status in ('pendiente','pagado')),
   subtotal numeric(12,2) not null default 0,
   total numeric(12,2) not null default 0,

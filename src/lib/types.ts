@@ -1,7 +1,8 @@
 export type DeliveryMethod = "domicilio" | "recoger";
 
 export type OrderStatus =
-  | "pendiente"
+  | "pendiente_cotizacion"
+  | "cotizacion_enviada"
   | "confirmado"
   | "preparando"
   | "enviado"
@@ -11,7 +12,8 @@ export type OrderStatus =
 export type PaymentStatus = "pendiente" | "pagado";
 
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
-  pendiente: "Pendiente",
+  pendiente_cotizacion: "Pendiente por cotizar",
+  cotizacion_enviada: "Cotización enviada",
   confirmado: "Confirmado",
   preparando: "Preparando",
   enviado: "Enviado",
@@ -46,7 +48,6 @@ export interface ProductVariant {
   variant_name: string;
   option_value: string;
   price_override: number | null;
-  stock_quantity: number;
   sku: string | null;
   sort_order: number;
 }
@@ -67,7 +68,6 @@ export interface Product {
   price: number;
   compare_at_price: number | null;
   active: boolean;
-  stock_quantity: number | null;
   created_at: string;
   updated_at: string;
 }
@@ -108,6 +108,7 @@ export interface Order {
   customer_name: string;
   customer_phone: string;
   customer_cedula: string;
+  customer_email?: string | null;
   delivery_method: DeliveryMethod;
   address: string | null;
   address_details: string | null;
@@ -122,6 +123,17 @@ export interface Order {
   location_name_snapshot?: string | null;
   location_address_snapshot?: string | null;
   location_whatsapp_snapshot?: string | null;
+  order_source?: "catalogo" | "asesor";
+  created_by_email?: string | null;
+  ghl_contact_id?: string | null;
+  ghl_sync_status?: "pendiente" | "sin_configurar" | "sincronizado" | "error";
+  ghl_sync_error?: string | null;
+  ghl_synced_at?: string | null;
+  quote_message?: string | null;
+  quote_sent_at?: string | null;
+  quote_sent_by_email?: string | null;
+  ghl_message_id?: string | null;
+  ghl_conversation_id?: string | null;
   created_at: string;
 }
 

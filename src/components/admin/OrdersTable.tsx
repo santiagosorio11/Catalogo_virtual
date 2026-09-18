@@ -85,12 +85,13 @@ export function OrdersTable({
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-black/5 bg-white">
-        <table className="min-w-[860px] w-full text-sm">
+        <table className="min-w-[960px] w-full text-sm">
           <thead>
             <tr className="border-b border-black/5 text-left text-xs uppercase tracking-wide text-black/40">
               <th className="p-3">Pedido</th>
               <th className="p-3">Fecha</th>
               <th className="p-3">Comprador</th>
+              <th className="p-3">Origen</th>
               <th className="p-3">Entrega</th>
               <th className="p-3">Valor</th>
               <th className="p-3">Estado</th>
@@ -106,6 +107,9 @@ export function OrdersTable({
                   {new Date(order.created_at).toLocaleDateString("es-CO")}
                 </td>
                 <td className="p-3">{order.customer_name}</td>
+                <td className="p-3 text-black/50">
+                  {order.order_source === "asesor" ? "Asesor" : "Catálogo"}
+                </td>
                 <td className="p-3 text-black/50">
                   <span className="capitalize">{order.delivery_method}</span>
                   {order.location_name_snapshot && (
@@ -164,7 +168,8 @@ export function OrdersTable({
 }
 
 const STATUS_COLORS: Record<OrderStatus, string> = {
-  pendiente: "bg-amber-50 text-amber-700",
+  pendiente_cotizacion: "bg-amber-50 text-amber-700",
+  cotizacion_enviada: "bg-cyan-50 text-cyan-700",
   confirmado: "bg-blue-50 text-blue-700",
   preparando: "bg-purple-50 text-purple-700",
   enviado: "bg-indigo-50 text-indigo-700",

@@ -31,9 +31,6 @@ export function ProductEditor({
     product.compare_at_price ? String(product.compare_at_price) : ""
   );
   const [active, setActive] = useState(product.active);
-  const [stockQuantity, setStockQuantity] = useState(
-    product.stock_quantity !== null ? String(product.stock_quantity) : ""
-  );
   const [categoryIds, setCategoryIds] = useState<Set<string>>(
     new Set(product.categories.map((c) => c.id))
   );
@@ -60,8 +57,6 @@ export function ProductEditor({
       price: Number(price) || 0,
       compareAtPrice: compareAtPrice ? Number(compareAtPrice) : null,
       active,
-      stockQuantity:
-        product.variants.length === 0 && stockQuantity ? Number(stockQuantity) : null,
       categoryIds: Array.from(categoryIds),
     });
     setSaving(false);
@@ -138,17 +133,6 @@ export function ProductEditor({
                 />
               </div>
             </div>
-            {product.variants.length === 0 && (
-              <div>
-                <label className="mb-1 block text-xs text-black/40">Cantidad en inventario</label>
-                <input
-                  type="number"
-                  value={stockQuantity}
-                  onChange={(e) => setStockQuantity(e.target.value)}
-                  className="w-full rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
-                />
-              </div>
-            )}
             <label className="flex items-center gap-2 pt-1 text-sm">
               <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
               Producto activo (visible en la tienda)
@@ -245,7 +229,6 @@ function VariantsSection({ product }: { product: ProductWithRelations }) {
   const [variantName, setVariantName] = useState("Tamaño");
   const [optionValue, setOptionValue] = useState("");
   const [priceOverride, setPriceOverride] = useState("");
-  const [stock, setStock] = useState("0");
 
   async function handleAdd() {
     if (!optionValue.trim()) return;
@@ -253,12 +236,10 @@ function VariantsSection({ product }: { product: ProductWithRelations }) {
       variantName: variantName.trim() || "Opción",
       optionValue: optionValue.trim(),
       priceOverride: priceOverride ? Number(priceOverride) : null,
-      stock: Number(stock) || 0,
       sku: null,
     });
     setOptionValue("");
     setPriceOverride("");
-    setStock("0");
     setAdding(false);
     router.refresh();
   }
@@ -273,7 +254,7 @@ function VariantsSection({ product }: { product: ProductWithRelations }) {
       </div>
 
       {adding && (
-        <div className="mb-4 grid grid-cols-2 gap-2 rounded-lg bg-black/[0.02] p-3 sm:grid-cols-4">
+        <div className="mb-4 grid grid-cols-1 gap-2 rounded-lg bg-black/[0.02] p-3 sm:grid-cols-3">
           <input
             placeholder="Nombre (ej. Tamaño)"
             value={variantName}
@@ -293,16 +274,9 @@ function VariantsSection({ product }: { product: ProductWithRelations }) {
             onChange={(e) => setPriceOverride(e.target.value)}
             className="rounded-lg border border-black/10 px-2.5 py-2 text-sm"
           />
-          <input
-            type="number"
-            placeholder="Stock"
-            value={stock}
-            onChange={(e) => setStock(e.target.value)}
-            className="rounded-lg border border-black/10 px-2.5 py-2 text-sm"
-          />
           <button
             onClick={handleAdd}
-            className="col-span-2 rounded-lg bg-brand py-2 text-sm font-medium text-white sm:col-span-4"
+            className="rounded-lg bg-brand py-2 text-sm font-medium text-white sm:col-span-3"
           >
             Guardar variante
           </button>
@@ -334,21 +308,19 @@ function VariantRow({
   const [priceOverride, setPriceOverride] = useState(
     variant.price_override !== null ? String(variant.price_override) : ""
   );
-  const [stock, setStock] = useState(String(variant.stock_quantity));
 
   async function handleBlurSave() {
     await updateVariant(variant.id, productId, {
       variantName: variant.variant_name,
       optionValue,
       priceOverride: priceOverride ? Number(priceOverride) : null,
-      stock: Number(stock) || 0,
       sku: variant.sku,
     });
     router.refresh();
   }
 
   return (
-    <li className="grid grid-cols-2 items-center gap-2 py-2.5 sm:grid-cols-5">
+    <li className="grid grid-cols-2 items-center gap-2 py-2.5 sm:grid-cols-4">
       <span className="text-xs text-black/40">{variant.variant_name}</span>
       <input
         value={optionValue}
@@ -362,14 +334,6 @@ function VariantRow({
         onChange={(e) => setPriceOverride(e.target.value)}
         onBlur={handleBlurSave}
         placeholder="Precio"
-        className="rounded-lg border border-black/10 px-2 py-1.5 text-sm"
-      />
-      <input
-        type="number"
-        value={stock}
-        onChange={(e) => setStock(e.target.value)}
-        onBlur={handleBlurSave}
-        placeholder="Stock"
         className="rounded-lg border border-black/10 px-2 py-1.5 text-sm"
       />
       <button

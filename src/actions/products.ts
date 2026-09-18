@@ -13,7 +13,6 @@ export interface ProductFormInput {
   price: number;
   compareAtPrice: number | null;
   active: boolean;
-  stockQuantity: number | null;
   categoryIds: string[];
 }
 
@@ -55,7 +54,6 @@ export async function createProduct(input: ProductFormInput) {
       price: input.price,
       compare_at_price: input.compareAtPrice,
       active: input.active,
-      stock_quantity: input.stockQuantity,
     })
     .select("id")
     .single();
@@ -83,7 +81,6 @@ export async function updateProduct(id: string, input: ProductFormInput) {
       price: input.price,
       compare_at_price: input.compareAtPrice,
       active: input.active,
-      stock_quantity: input.stockQuantity,
       updated_at: new Date().toISOString(),
     })
     .eq("id", id);
@@ -137,32 +134,10 @@ export async function bulkDeleteProducts(ids: string[]) {
   return { success: true };
 }
 
-export async function updateProductStock(id: string, stockQuantity: number) {
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("products")
-    .update({ stock_quantity: stockQuantity })
-    .eq("id", id);
-  if (error) return { error: error.message };
-  revalidatePath("/admin/inventario");
-  return { success: true };
-}
-
-export async function updateVariantStock(variantId: string, stockQuantity: number) {
-  const supabase = await createClient();
-  const { error } = await supabase
-    .from("product_variants")
-    .update({ stock_quantity: stockQuantity })
-    .eq("id", variantId);
-  if (error) return { error: error.message };
-  revalidatePath("/admin/inventario");
-  return { success: true };
-}
-
 // ---- Variantes ----
 export async function addVariant(
   productId: string,
-  input: { variantName: string; optionValue: string; priceOverride: number | null; stock: number; sku: string | null }
+  input: { variantName: string; optionValue: string; priceOverride: number | null; sku: string | null }
 ) {
   const supabase = await createClient();
   const { error } = await supabase.from("product_variants").insert({
@@ -170,7 +145,6 @@ export async function addVariant(
     variant_name: input.variantName,
     option_value: input.optionValue,
     price_override: input.priceOverride,
-    stock_quantity: input.stock,
     sku: input.sku,
   });
   if (error) return { error: error.message };
@@ -182,7 +156,7 @@ export async function addVariant(
 export async function updateVariant(
   variantId: string,
   productId: string,
-  input: { variantName: string; optionValue: string; priceOverride: number | null; stock: number; sku: string | null }
+  input: { variantName: string; optionValue: string; priceOverride: number | null; sku: string | null }
 ) {
   const supabase = await createClient();
   const { error } = await supabase
@@ -191,7 +165,6 @@ export async function updateVariant(
       variant_name: input.variantName,
       option_value: input.optionValue,
       price_override: input.priceOverride,
-      stock_quantity: input.stock,
       sku: input.sku,
     })
     .eq("id", variantId);
@@ -374,7 +347,6 @@ export async function importProductsFromXlsx(formData: FormData): Promise<Import
             price: item.price,
             compare_at_price: item.compareAtPrice,
             active: item.active,
-            stock_quantity: hasVariants ? null : item.stock,
             updated_at: new Date().toISOString(),
           })
           .eq("id", existingId);
@@ -389,7 +361,6 @@ export async function importProductsFromXlsx(formData: FormData): Promise<Import
               variant_name: v.variantName,
               option_value: v.optionValue,
               price_override: v.priceOverride,
-              stock_quantity: v.stock,
               sku: v.sku,
               sort_order: idx,
             }))
@@ -408,7 +379,6 @@ export async function importProductsFromXlsx(formData: FormData): Promise<Import
             price: item.price,
             compare_at_price: item.compareAtPrice,
             active: item.active,
-            stock_quantity: hasVariants ? null : item.stock,
           })
           .select("id")
           .single();
@@ -424,7 +394,6 @@ export async function importProductsFromXlsx(formData: FormData): Promise<Import
               variant_name: v.variantName,
               option_value: v.optionValue,
               price_override: v.priceOverride,
-              stock_quantity: v.stock,
               sku: v.sku,
               sort_order: idx,
             }))

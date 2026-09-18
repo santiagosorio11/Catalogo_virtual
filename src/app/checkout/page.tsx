@@ -20,7 +20,7 @@ export default async function CheckoutPage() {
         whatsappNumber={settings.whatsapp_number}
         compact
       />
-      <CheckoutForm whatsappNumber={settings.whatsapp_number} locations={locations} />
+      <CheckoutForm locations={locations} />
     </div>
   );
 }

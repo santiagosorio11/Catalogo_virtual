@@ -55,7 +55,6 @@ export async function GET() {
     "OPCION VARIACION 1 (OPCIONAL)",
     "OPCION PRECIO VARIACIÓN (OPCIONAL)",
     "ACTIVO",
-    "CANTIDAD",
   ];
 
   const rows: (string | number | null)[][] = [header];
@@ -78,7 +77,6 @@ export async function GET() {
         "",
         "",
         product.active ? 1 : 0,
-        product.stock_quantity ?? "",
       ]);
     } else {
       productVariants.forEach((variant, idx) => {
@@ -93,7 +91,6 @@ export async function GET() {
           variant.option_value,
           variant.price_override ?? "",
           idx === 0 ? (product.active ? 1 : 0) : "",
-          variant.stock_quantity,
         ]);
       });
     }

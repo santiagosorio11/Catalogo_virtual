@@ -15,7 +15,8 @@ import { formatCOP } from "@/lib/currency";
 import { ORDER_STATUS_LABELS, type OrderStatus } from "@/lib/types";
 
 const statusClasses: Record<OrderStatus, string> = {
-  pendiente: "bg-amber-50 text-amber-700",
+  pendiente_cotizacion: "bg-amber-50 text-amber-700",
+  cotizacion_enviada: "bg-cyan-50 text-cyan-700",
   confirmado: "bg-blue-50 text-blue-700",
   preparando: "bg-violet-50 text-violet-700",
   enviado: "bg-indigo-50 text-indigo-700",
@@ -28,7 +29,10 @@ export default async function AdminHomePage() {
 
   const [{ count: pendingOrders }, { count: activeProducts }, { count: categories }, { data: recentOrders }] =
     await Promise.all([
-      supabase.from("orders").select("id", { count: "exact", head: true }).eq("status", "pendiente"),
+      supabase
+        .from("orders")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pendiente_cotizacion"),
       supabase.from("products").select("id", { count: "exact", head: true }).eq("active", true),
       supabase.from("categories").select("id", { count: "exact", head: true }),
       supabase
@@ -40,9 +44,9 @@ export default async function AdminHomePage() {
 
   const stats = [
     {
-      label: "Pedidos pendientes",
+      label: "Pendientes por cotizar",
       value: pendingOrders ?? 0,
-      href: "/admin/pedidos?estado=pendiente",
+      href: "/admin/pedidos?estado=pendiente_cotizacion",
       icon: ClipboardList,
       accent: "bg-amber-50 text-amber-700",
     },
@@ -66,7 +70,7 @@ export default async function AdminHomePage() {
     {
       href: "/admin/productos",
       title: "Gestionar productos",
-      description: "Edita precios, fotos, variantes y disponibilidad.",
+      description: "Edita precios, fotos, variantes y visibilidad.",
       icon: Boxes,
     },
     {

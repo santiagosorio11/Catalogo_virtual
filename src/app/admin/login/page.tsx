@@ -33,11 +33,11 @@ export default function AdminLoginPage() {
               Tu catálogo listo para vender y operar.
             </h1>
             <p className="mt-6 max-w-lg text-base leading-7 text-white/60">
-              Actualiza productos, controla inventario y revisa pedidos sin salir de tu cuenta de HighLevel.
+              Actualiza productos, prepara cotizaciones y revisa pedidos sin salir de tu cuenta de HighLevel.
             </p>
 
             <div className="mt-10 grid grid-cols-3 gap-px overflow-hidden rounded-2xl bg-white/10">
-              {["Productos", "Inventario", "Pedidos"].map((item) => (
+              {["Productos", "Cotizaciones", "Pedidos"].map((item) => (
                 <div key={item} className="bg-white/[0.04] px-4 py-5 text-sm text-white/70">
                   {item}
                 </div>

@@ -30,8 +30,8 @@ export default function ImportarProductosPage() {
         <div className="max-w-xl rounded-2xl border border-black/5 bg-white p-4 sm:p-6">
           <p className="mb-4 text-sm text-black/60">
             Sube el archivo .xlsx con tus productos (mismo formato exportado por la plataforma:
-            NOMBRE PRODUCTO, REFERENCIA - SKU, DESCRIPCIÓN, PRECIO, CATEGORIAS, variantes, ACTIVO,
-            CANTIDAD). Los productos con el mismo SKU se actualizan; los nuevos se crean. Este
+            NOMBRE PRODUCTO, REFERENCIA - SKU, DESCRIPCIÓN, PRECIO, CATEGORIAS, variantes y ACTIVO).
+            Los productos con el mismo SKU se actualizan; los nuevos se crean. Este
             archivo no trae fotos — súbelas después con &quot;Subir imágenes por lote&quot;.
           </p>
 
