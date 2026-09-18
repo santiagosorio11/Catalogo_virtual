@@ -7,6 +7,7 @@ import { ArrowLeft, MapPin } from "lucide-react";
 import { useCart } from "@/context/cart-context";
 import { formatCOP } from "@/lib/currency";
 import { createOrder } from "@/actions/orders";
+import { useToast } from "@/components/ui/Toast";
 import type { DeliveryMethod, StoreLocation } from "@/lib/types";
 
 export function CheckoutForm({
@@ -15,6 +16,7 @@ export function CheckoutForm({
   locations: StoreLocation[];
 }) {
   const { items, subtotal, clear } = useCart();
+  const toast = useToast();
 
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("domicilio");
   const [name, setName] = useState("");
@@ -40,10 +42,12 @@ export function CheckoutForm({
     if (items.length === 0) return;
     if (locations.length > 0 && !selectedLocation) {
       setError("Selecciona la sede que atenderá el pedido.");
+      toast.warning("Selecciona la sede que atenderá el pedido");
       return;
     }
     setSubmitting(true);
     setError(null);
+    const toastId = toast.loading("Enviando tu solicitud...");
 
     const result = await createOrder({
       customerName: name,
@@ -64,6 +68,11 @@ export function CheckoutForm({
 
     if ("error" in result) {
       setError(result.error);
+      toast.update(toastId, {
+        variant: "error",
+        title: "No pudimos crear tu pedido",
+        description: result.error,
+      });
       return;
     }
 
@@ -72,6 +81,13 @@ export function CheckoutForm({
       locationName: result.locationName,
     });
     clear();
+    toast.update(toastId, {
+      variant: "success",
+      title: `Pedido #${result.orderNumber} recibido`,
+      description: result.locationName
+        ? `Lo atenderá la sede ${result.locationName}.`
+        : "Un asesor te enviará la cotización.",
+    });
   }
 
   if (confirmation) {
@@ -82,7 +98,7 @@ export function CheckoutForm({
         </div>
         <h1 className="text-xl font-semibold">¡Pedido #{confirmation.orderNumber} recibido!</h1>
         <p className="mt-2 text-sm text-black/50">
-          Quedó pendiente por cotizar. Un asesor revisará los artículos y te enviará la cotización por WhatsApp.
+          Quedó pendiente por cotizar. Un asesor revisará los artículos y te enviará la cotización por SMS.
         </p>
         {confirmation.locationName && (
           <p className="mt-2 rounded-full bg-orbita-cyan-soft px-3 py-1 text-xs font-semibold text-orbita-navy">

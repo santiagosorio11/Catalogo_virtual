@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { Pencil, Search } from "lucide-react";
 import { bulkDeleteProducts, bulkSetActive, createDraftProduct } from "@/actions/products";
+import { useToast } from "@/components/ui/Toast";
 import { formatCOP } from "@/lib/currency";
 import type { AdminProductRow } from "@/lib/data/admin-products";
 import type { Category } from "@/lib/types";
@@ -24,6 +25,7 @@ export function ProductsTable({
   totalPages: number;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -61,7 +63,14 @@ export function ProductsTable({
 
   async function handleAddProduct() {
     const result = await createDraftProduct();
-    if ("id" in result) router.push(`/admin/productos/${result.id}`);
+    if ("error" in result) {
+      toast.error("No se pudo crear el producto", { description: result.error });
+      return;
+    }
+    toast.success("Producto creado", {
+      description: "Completa la información y guárdalo para publicarlo.",
+    });
+    router.push(`/admin/productos/${result.id}`);
   }
 
   function handleBulk(action: "activate" | "deactivate" | "delete") {
@@ -69,10 +78,37 @@ export function ProductsTable({
     if (ids.length === 0) return;
     if (action === "delete" && !confirm(`¿Eliminar ${ids.length} producto(s)?`)) return;
 
+    const noun = ids.length === 1 ? "Producto" : `${ids.length} productos`;
+    const participle =
+      action === "delete"
+        ? ids.length === 1
+          ? "eliminado"
+          : "eliminados"
+        : action === "activate"
+          ? ids.length === 1
+            ? "activado"
+            : "activados"
+          : ids.length === 1
+            ? "desactivado"
+            : "desactivados";
+
     startTransition(async () => {
-      if (action === "activate") await bulkSetActive(ids, true);
-      if (action === "deactivate") await bulkSetActive(ids, false);
-      if (action === "delete") await bulkDeleteProducts(ids);
+      const result =
+        action === "delete"
+          ? await bulkDeleteProducts(ids)
+          : await bulkSetActive(ids, action === "activate");
+
+      if ("error" in result) {
+        toast.error(
+          action === "delete"
+            ? "No se pudieron eliminar los productos"
+            : "No se pudo cambiar el estado de los productos",
+          { description: result.error }
+        );
+        return;
+      }
+
+      toast.success(`${noun} ${participle}`);
       setSelected(new Set());
       router.refresh();
     });
@@ -217,7 +253,11 @@ export function ProductsTable({
                 <td className="p-3 text-black/50">{product.categoryNames.join(", ") || "—"}</td>
                 <td className="p-3 text-black/50">{product.sku ?? "—"}</td>
                 <td className="p-3">
-                  <ActiveToggle productId={product.id} active={product.active} />
+                  <ActiveToggle
+                    productId={product.id}
+                    productName={product.name}
+                    active={product.active}
+                  />
                 </td>
                 <td className="p-3 font-medium">{formatCOP(product.price)}</td>
                 <td className="p-3">
@@ -259,8 +299,17 @@ export function ProductsTable({
   );
 }
 
-function ActiveToggle({ productId, active }: { productId: string; active: boolean }) {
+function ActiveToggle({
+  productId,
+  productName,
+  active,
+}: {
+  productId: string;
+  productName: string;
+  active: boolean;
+}) {
   const router = useRouter();
+  const toast = useToast();
   const [checked, setChecked] = useState(active);
   const [pending, startTransition] = useTransition();
 
@@ -268,7 +317,17 @@ function ActiveToggle({ productId, active }: { productId: string; active: boolea
     const next = !checked;
     setChecked(next);
     startTransition(async () => {
-      await bulkSetActive([productId], next);
+      const result = await bulkSetActive([productId], next);
+      if ("error" in result) {
+        setChecked(!next);
+        toast.error("No se pudo cambiar el estado del producto", {
+          description: result.error,
+        });
+        return;
+      }
+      toast.success(next ? "Producto activado" : "Producto desactivado", {
+        description: productName,
+      });
       router.refresh();
     });
   }

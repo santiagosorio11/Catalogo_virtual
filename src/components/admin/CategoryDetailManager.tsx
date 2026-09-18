@@ -36,6 +36,7 @@ import {
   updateCategory,
   uploadCategoryImage,
 } from "@/actions/categories";
+import { useToast } from "@/components/ui/Toast";
 import type { Category } from "@/lib/types";
 import { CategoryFormModal } from "./CategoryFormModal";
 
@@ -112,6 +113,7 @@ export function CategoryDetailManager({
   directProductCount: number;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [name, setName] = useState(category.name);
   const [imageUrl, setImageUrl] = useState<string | null>(category.image_url);
@@ -131,10 +133,13 @@ export function CategoryDetailManager({
     startTransition(async () => {
       const result = await updateCategory(category.id, { name, imageUrl });
       if ("error" in result) {
-        setError(result.error ?? "No fue posible guardar la categoría.");
+        const message = result.error ?? "No fue posible guardar la categoría.";
+        setError(message);
+        toast.error("No se pudo guardar la categoría", { description: message });
         return;
       }
       setSaved(true);
+      toast.success("Categoría actualizada", { description: name.trim() });
       router.refresh();
     });
   }
@@ -144,28 +149,50 @@ export function CategoryDetailManager({
     if (!file) return;
     setUploading(true);
     setError(null);
+    const toastId = toast.loading("Subiendo imagen...", { description: file.name });
     const formData = new FormData();
     formData.append("file", file);
     const result = await uploadCategoryImage(category.id, formData);
     setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
     if ("error" in result) {
-      setError(result.error ?? "No fue posible cargar la imagen.");
+      const message = result.error ?? "No fue posible cargar la imagen.";
+      setError(message);
+      toast.update(toastId, {
+        variant: "error",
+        title: "No se pudo subir la imagen",
+        description: message,
+      });
       return;
     }
+
     setImageUrl(result.url ?? null);
     setSaved(true);
+    toast.update(toastId, {
+      variant: "success",
+      title: "Imagen subida correctamente",
+      description: null,
+    });
     router.refresh();
   }
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
+    const previous = subcategories;
     const oldIndex = subcategories.findIndex((item) => item.id === active.id);
     const newIndex = subcategories.findIndex((item) => item.id === over.id);
     const reordered = arrayMove(subcategories, oldIndex, newIndex);
     setSubcategories(reordered);
     startTransition(async () => {
-      await reorderCategories(reordered.map((item) => item.id));
+      const result = await reorderCategories(reordered.map((item) => item.id));
+      if ("error" in result) {
+        setSubcategories(previous);
+        toast.error("No se pudo guardar el nuevo orden", { description: result.error });
+        return;
+      }
+      toast.success("Orden de subcategorías actualizado");
       router.refresh();
     });
   }
@@ -175,10 +202,13 @@ export function CategoryDetailManager({
     setError(null);
     const result = await deleteCategory(subcategory.id);
     if (result && "error" in result) {
-      setError(result.error ?? "No fue posible eliminar la subcategoría.");
+      const message = result.error ?? "No fue posible eliminar la subcategoría.";
+      setError(message);
+      toast.error("No se pudo eliminar la subcategoría", { description: message });
       return;
     }
     setSubcategories((items) => items.filter((item) => item.id !== subcategory.id));
+    toast.success("Subcategoría eliminada", { description: subcategory.name });
     router.refresh();
   }
 

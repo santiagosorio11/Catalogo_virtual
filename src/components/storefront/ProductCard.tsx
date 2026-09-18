@@ -6,16 +6,19 @@ import { useRouter } from "next/navigation";
 import { Plus } from "lucide-react";
 import { formatCOP } from "@/lib/currency";
 import { useCart } from "@/context/cart-context";
+import { useToast } from "@/components/ui/Toast";
 import type { ProductWithRelations } from "@/lib/types";
 
 export function ProductCard({ product }: { product: ProductWithRelations }) {
   const router = useRouter();
   const { addItem } = useCart();
+  const toast = useToast();
   const image = product.images[0]?.url ?? null;
   const hasVariants = product.variants.length > 0;
 
   function handleQuickAdd() {
     if (hasVariants) {
+      toast.info("Elige una opción antes de agregar", { description: product.name });
       router.push(`/producto/${product.slug}`);
       return;
     }
@@ -29,6 +32,7 @@ export function ProductCard({ product }: { product: ProductWithRelations }) {
       imageUrl: image,
       slug: product.slug,
     });
+    toast.success("Producto agregado al carrito", { description: product.name });
   }
 
   return (

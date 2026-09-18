@@ -218,7 +218,8 @@ export async function deleteProductImage(imageId: string, productId: string) {
     .eq("id", imageId)
     .maybeSingle();
 
-  await supabase.from("product_images").delete().eq("id", imageId);
+  const { error } = await supabase.from("product_images").delete().eq("id", imageId);
+  if (error) return { error: error.message };
   if (image?.url) await deleteImageAsset(image.url);
 
   revalidatePath(`/admin/productos/${productId}`);

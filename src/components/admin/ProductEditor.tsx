@@ -13,6 +13,7 @@ import {
   updateVariant,
   uploadProductImage,
 } from "@/actions/products";
+import { useToast } from "@/components/ui/Toast";
 import type { Category, ProductWithRelations } from "@/lib/types";
 
 export function ProductEditor({
@@ -23,6 +24,7 @@ export function ProductEditor({
   categories: Category[];
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [name, setName] = useState(product.name);
   const [sku, setSku] = useState(product.sku ?? "");
   const [description, setDescription] = useState(product.description ?? "");
@@ -35,7 +37,6 @@ export function ProductEditor({
     new Set(product.categories.map((c) => c.id))
   );
   const [saving, setSaving] = useState(false);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
 
@@ -50,7 +51,7 @@ export function ProductEditor({
 
   async function handleSave() {
     setSaving(true);
-    await updateProduct(product.id, {
+    const result = await updateProduct(product.id, {
       name,
       sku: sku.trim() || null,
       description: description.trim() || null,
@@ -60,13 +61,26 @@ export function ProductEditor({
       categoryIds: Array.from(categoryIds),
     });
     setSaving(false);
-    setSavedAt(Date.now());
+
+    if ("error" in result) {
+      toast.error("No se pudo guardar el producto", { description: result.error });
+      return;
+    }
+
+    toast.success(`Producto ${active ? "actualizado" : "actualizado y desactivado"}`, {
+      description: name.trim() || undefined,
+    });
     router.refresh();
   }
 
   async function handleDeleteProduct() {
     if (!confirm("¿Eliminar este producto? Esta acción no se puede deshacer.")) return;
-    await deleteProduct(product.id);
+    const result = await deleteProduct(product.id);
+    if ("error" in result) {
+      toast.error("No se pudo eliminar el producto", { description: result.error });
+      return;
+    }
+    toast.success("Producto eliminado", { description: product.name });
     router.push("/admin/productos");
   }
 
@@ -74,12 +88,38 @@ export function ProductEditor({
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    const toastId = toast.loading("Subiendo imagen...", { description: file.name });
     const formData = new FormData();
     formData.append("file", file);
-    await uploadProductImage(product.id, formData);
+    const result = await uploadProductImage(product.id, formData);
     setUploading(false);
-    router.refresh();
     if (fileInputRef.current) fileInputRef.current.value = "";
+
+    if ("error" in result) {
+      toast.update(toastId, {
+        variant: "error",
+        title: "No se pudo subir la imagen",
+        description: result.error,
+      });
+      return;
+    }
+
+    toast.update(toastId, {
+      variant: "success",
+      title: "Imagen subida correctamente",
+      description: null,
+    });
+    router.refresh();
+  }
+
+  async function handleImageDelete(imageId: string) {
+    const result = await deleteProductImage(imageId, product.id);
+    if ("error" in result) {
+      toast.error("No se pudo eliminar la imagen", { description: result.error });
+      return;
+    }
+    toast.success("Imagen eliminada");
+    router.refresh();
   }
 
   return (
@@ -168,10 +208,8 @@ export function ProductEditor({
               <div key={img.id} className="group relative h-24 w-24 overflow-hidden rounded-lg bg-black/5">
                 <Image src={img.url} alt="" fill sizes="96px" className="object-cover" />
                 <button
-                  onClick={async () => {
-                    await deleteProductImage(img.id, product.id);
-                    router.refresh();
-                  }}
+                  onClick={() => handleImageDelete(img.id)}
+                  aria-label="Eliminar imagen"
                   className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 group-hover:opacity-100"
                 >
                   <X size={14} />
@@ -206,7 +244,6 @@ export function ProductEditor({
           >
             {saving ? "Guardando..." : "Guardar cambios"}
           </button>
-          {savedAt && <p className="mt-2 text-center text-xs text-black/40">Guardado</p>}
         </div>
 
         <div className="rounded-2xl border border-red-100 bg-white p-5">
@@ -225,19 +262,32 @@ export function ProductEditor({
 
 function VariantsSection({ product }: { product: ProductWithRelations }) {
   const router = useRouter();
+  const toast = useToast();
   const [adding, setAdding] = useState(false);
   const [variantName, setVariantName] = useState("Tamaño");
   const [optionValue, setOptionValue] = useState("");
   const [priceOverride, setPriceOverride] = useState("");
 
   async function handleAdd() {
-    if (!optionValue.trim()) return;
-    await addVariant(product.id, {
+    if (!optionValue.trim()) {
+      toast.warning("Escribe la opción de la variante", {
+        description: "Por ejemplo: 15 ml.",
+      });
+      return;
+    }
+    const result = await addVariant(product.id, {
       variantName: variantName.trim() || "Opción",
       optionValue: optionValue.trim(),
       priceOverride: priceOverride ? Number(priceOverride) : null,
       sku: null,
     });
+
+    if ("error" in result) {
+      toast.error("No se pudo agregar la variante", { description: result.error });
+      return;
+    }
+
+    toast.success("Variante agregada", { description: optionValue.trim() });
     setOptionValue("");
     setPriceOverride("");
     setAdding(false);
@@ -304,18 +354,49 @@ function VariantRow({
   variant: ProductWithRelations["variants"][number];
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [optionValue, setOptionValue] = useState(variant.option_value);
   const [priceOverride, setPriceOverride] = useState(
     variant.price_override !== null ? String(variant.price_override) : ""
   );
+  const savedValues = useRef({
+    optionValue: variant.option_value,
+    priceOverride: variant.price_override !== null ? String(variant.price_override) : "",
+  });
 
   async function handleBlurSave() {
-    await updateVariant(variant.id, productId, {
+    // Solo guardamos (y avisamos) cuando el campo realmente cambió.
+    if (
+      savedValues.current.optionValue === optionValue &&
+      savedValues.current.priceOverride === priceOverride
+    ) {
+      return;
+    }
+
+    const result = await updateVariant(variant.id, productId, {
       variantName: variant.variant_name,
       optionValue,
       priceOverride: priceOverride ? Number(priceOverride) : null,
       sku: variant.sku,
     });
+
+    if ("error" in result) {
+      toast.error("No se pudo actualizar la variante", { description: result.error });
+      return;
+    }
+
+    savedValues.current = { optionValue, priceOverride };
+    toast.success("Variante actualizada", { description: optionValue });
+    router.refresh();
+  }
+
+  async function handleDelete() {
+    const result = await deleteVariant(variant.id, productId);
+    if ("error" in result) {
+      toast.error("No se pudo eliminar la variante", { description: result.error });
+      return;
+    }
+    toast.success("Variante eliminada", { description: variant.option_value });
     router.refresh();
   }
 
@@ -337,10 +418,8 @@ function VariantRow({
         className="rounded-lg border border-black/10 px-2 py-1.5 text-sm"
       />
       <button
-        onClick={async () => {
-          await deleteVariant(variant.id, productId);
-          router.refresh();
-        }}
+        onClick={handleDelete}
+        aria-label={`Eliminar variante ${variant.option_value}`}
         className="flex items-center justify-center text-black/30 hover:text-red-500"
       >
         <Trash2 size={16} />

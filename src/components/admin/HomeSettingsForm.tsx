@@ -4,45 +4,75 @@ import { useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { updateStoreSettings, uploadStoreBanner, uploadStoreLogo } from "@/actions/settings";
+import { useToast } from "@/components/ui/Toast";
 import type { StoreSettings } from "@/lib/types";
 
 export function HomeSettingsForm({ settings }: { settings: StoreSettings }) {
   const router = useRouter();
+  const toast = useToast();
   const [storeName, setStoreName] = useState(settings.store_name);
   const [logoUrl, setLogoUrl] = useState(settings.logo_url);
   const [bannerUrl, setBannerUrl] = useState(settings.banner_url);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState<"logo" | "banner" | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
-  async function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  async function handleAssetChange(
+    event: React.ChangeEvent<HTMLInputElement>,
+    asset: "logo" | "banner"
+  ) {
+    const file = event.target.files?.[0];
     if (!file) return;
-    const formData = new FormData();
-    formData.append("file", file);
-    const result = await uploadStoreLogo(formData);
-    if ("url" in result) setLogoUrl(result.url ?? null);
-    router.refresh();
-  }
 
-  async function handleBannerChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const label = asset === "logo" ? "logo" : "banner";
+    setUploading(asset);
+    const toastId = toast.loading(`Subiendo ${label}...`, { description: file.name });
+
     const formData = new FormData();
     formData.append("file", file);
-    const result = await uploadStoreBanner(formData);
-    if ("url" in result) setBannerUrl(result.url ?? null);
+    const result = asset === "logo"
+      ? await uploadStoreLogo(formData)
+      : await uploadStoreBanner(formData);
+
+    setUploading(null);
+    event.target.value = "";
+
+    if ("error" in result) {
+      toast.update(toastId, {
+        variant: "error",
+        title: `No se pudo subir el ${label}`,
+        description: result.error,
+      });
+      return;
+    }
+
+    if (asset === "logo") setLogoUrl(result.url ?? null);
+    else setBannerUrl(result.url ?? null);
+
+    toast.update(toastId, {
+      variant: "success",
+      title: `${asset === "logo" ? "Logo" : "Banner"} actualizado`,
+      description: null,
+    });
     router.refresh();
   }
 
   async function handleSave() {
     setSaving(true);
-    await updateStoreSettings({
+    const result = await updateStoreSettings({
       storeName,
       description: settings.description,
       whatsappNumber: settings.whatsapp_number,
     });
     setSaving(false);
+
+    if ("error" in result) {
+      toast.error("No se pudo guardar la portada", { description: result.error });
+      return;
+    }
+
+    toast.success("Portada actualizada", { description: storeName.trim() });
     router.refresh();
   }
 
@@ -56,11 +86,18 @@ export function HomeSettingsForm({ settings }: { settings: StoreSettings }) {
           </div>
           <button
             onClick={() => logoInputRef.current?.click()}
-            className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium hover:bg-black/5"
+            disabled={uploading === "logo"}
+            className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium hover:bg-black/5 disabled:opacity-60"
           >
-            Cambiar logo
+            {uploading === "logo" ? "Subiendo..." : "Cambiar logo"}
           </button>
-          <input ref={logoInputRef} type="file" accept="image/*" className="hidden" onChange={handleLogoChange} />
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            className="hidden"
+            onChange={(event) => handleAssetChange(event, "logo")}
+          />
         </div>
       </section>
 
@@ -71,11 +108,18 @@ export function HomeSettingsForm({ settings }: { settings: StoreSettings }) {
         </div>
         <button
           onClick={() => bannerInputRef.current?.click()}
-          className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium hover:bg-black/5"
+          disabled={uploading === "banner"}
+          className="rounded-lg border border-black/10 px-4 py-2 text-sm font-medium hover:bg-black/5 disabled:opacity-60"
         >
-          Cambiar banner
+          {uploading === "banner" ? "Subiendo..." : "Cambiar banner"}
         </button>
-        <input ref={bannerInputRef} type="file" accept="image/*" className="hidden" onChange={handleBannerChange} />
+        <input
+          ref={bannerInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(event) => handleAssetChange(event, "banner")}
+        />
       </section>
 
       <section className="rounded-2xl border border-black/5 bg-white p-5">

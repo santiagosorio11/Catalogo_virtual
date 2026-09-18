@@ -4,10 +4,30 @@ import Link from "next/link";
 import Image from "next/image";
 import { Minus, Plus, Trash2, ArrowLeft } from "lucide-react";
 import { useCart } from "@/context/cart-context";
+import { useToast } from "@/components/ui/Toast";
 import { formatCOP } from "@/lib/currency";
+import type { CartItem } from "@/lib/types";
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, subtotal } = useCart();
+  const toast = useToast();
+
+  function handleRemove(item: CartItem) {
+    removeItem(item.productId, item.variantId);
+    toast.success("Producto eliminado del carrito", { description: item.name });
+  }
+
+  function handleQuantityChange(item: CartItem, quantity: number) {
+    updateQuantity(item.productId, item.variantId, quantity);
+    if (quantity <= 0) {
+      toast.success("Producto eliminado del carrito", { description: item.name });
+      return;
+    }
+    toast.info("Cantidad actualizada", {
+      description: `${item.name} · ${quantity} ${quantity === 1 ? "unidad" : "unidades"}`,
+      duration: 2000,
+    });
+  }
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">
@@ -46,23 +66,25 @@ export default function CartPage() {
                 </div>
                 <div className="flex items-center rounded-lg border border-black/10">
                   <button
-                    onClick={() => updateQuantity(item.productId, item.variantId, item.quantity - 1)}
+                    onClick={() => handleQuantityChange(item, item.quantity - 1)}
+                    aria-label={`Quitar una unidad de ${item.name}`}
                     className="flex h-8 w-8 items-center justify-center text-black/60"
                   >
                     <Minus size={14} />
                   </button>
                   <span className="w-6 text-center text-sm">{item.quantity}</span>
                   <button
-                    onClick={() => updateQuantity(item.productId, item.variantId, item.quantity + 1)}
+                    onClick={() => handleQuantityChange(item, item.quantity + 1)}
+                    aria-label={`Agregar una unidad de ${item.name}`}
                     className="flex h-8 w-8 items-center justify-center text-black/60"
                   >
                     <Plus size={14} />
                   </button>
                 </div>
                 <button
-                  onClick={() => removeItem(item.productId, item.variantId)}
+                  onClick={() => handleRemove(item)}
                   className="text-black/30 hover:text-red-500"
-                  aria-label="Eliminar"
+                  aria-label={`Eliminar ${item.name} del carrito`}
                 >
                   <Trash2 size={18} />
                 </button>

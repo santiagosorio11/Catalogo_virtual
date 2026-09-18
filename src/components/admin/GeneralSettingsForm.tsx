@@ -3,24 +3,31 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateStoreSettings } from "@/actions/settings";
+import { useToast } from "@/components/ui/Toast";
 import type { StoreSettings } from "@/lib/types";
 
 export function GeneralSettingsForm({ settings }: { settings: StoreSettings }) {
   const router = useRouter();
+  const toast = useToast();
   const [description, setDescription] = useState(settings.description ?? "");
   const [whatsappNumber, setWhatsappNumber] = useState(settings.whatsapp_number ?? "");
   const [saving, setSaving] = useState(false);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
 
   async function handleSave() {
     setSaving(true);
-    await updateStoreSettings({
+    const result = await updateStoreSettings({
       storeName: settings.store_name,
       description: description.trim() || null,
       whatsappNumber: whatsappNumber.trim() || null,
     });
     setSaving(false);
-    setSavedAt(Date.now());
+
+    if ("error" in result) {
+      toast.error("No se pudo guardar la configuración", { description: result.error });
+      return;
+    }
+
+    toast.success("Configuración guardada");
     router.refresh();
   }
 
@@ -64,7 +71,6 @@ export function GeneralSettingsForm({ settings }: { settings: StoreSettings }) {
       >
         {saving ? "Guardando..." : "Guardar cambios"}
       </button>
-      {savedAt && <span className="ml-3 text-sm text-black/40">Guardado</span>}
     </div>
   );
 }

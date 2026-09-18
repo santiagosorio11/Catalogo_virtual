@@ -3,8 +3,10 @@
 import { useRef, useState } from "react";
 import { AdminTopbar } from "@/components/admin/AdminTopbar";
 import { importProductsFromXlsx, type ImportSummary } from "@/actions/products";
+import { useToast } from "@/components/ui/Toast";
 
 export default function ImportarProductosPage() {
+  const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<ImportSummary | null>(null);
@@ -12,15 +14,41 @@ export default function ImportarProductosPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const file = fileInputRef.current?.files?.[0];
-    if (!file) return;
+    if (!file) {
+      toast.warning("Selecciona el archivo .xlsx que quieres importar");
+      return;
+    }
 
     setLoading(true);
     setSummary(null);
+    const toastId = toast.loading("Importando productos...", {
+      description: `${file.name} · esto puede tardar unos minutos.`,
+    });
+
     const formData = new FormData();
     formData.append("file", file);
     const result = await importProductsFromXlsx(formData);
     setSummary(result);
     setLoading(false);
+
+    const processed = result.productsCreated + result.productsUpdated;
+    if (processed === 0 && result.errors.length > 0) {
+      toast.update(toastId, {
+        variant: "error",
+        title: "No se pudo importar el archivo",
+        description: result.errors[0],
+      });
+      return;
+    }
+
+    toast.update(toastId, {
+      variant: result.errors.length > 0 ? "warning" : "success",
+      title:
+        result.errors.length > 0
+          ? `Importación con ${result.errors.length} ${result.errors.length === 1 ? "error" : "errores"}`
+          : "Productos importados correctamente",
+      description: `${result.productsCreated} creados · ${result.productsUpdated} actualizados · ${result.categoriesCreated} categorías nuevas.`,
+    });
   }
 
   return (

@@ -7,10 +7,12 @@ import clsx from "clsx";
 import { Minus, Plus, ArrowLeft } from "lucide-react";
 import { formatCOP } from "@/lib/currency";
 import { useCart } from "@/context/cart-context";
+import { useToast } from "@/components/ui/Toast";
 import type { ProductWithRelations } from "@/lib/types";
 
 export function ProductDetail({ product }: { product: ProductWithRelations }) {
   const { addItem } = useCart();
+  const toast = useToast();
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
@@ -59,6 +61,11 @@ export function ProductDetail({ product }: { product: ProductWithRelations }) {
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);
+    toast.success("Producto agregado al carrito", {
+      description: `${quantity} × ${product.name}${
+        selectedVariant ? ` · ${selectedVariant.option_value}` : ""
+      }`,
+    });
   }
 
   return (

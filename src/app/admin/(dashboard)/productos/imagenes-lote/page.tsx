@@ -3,8 +3,10 @@
 import { useRef, useState } from "react";
 import { AdminTopbar } from "@/components/admin/AdminTopbar";
 import { importImagesZip, type BulkImageSummary } from "@/actions/products";
+import { useToast } from "@/components/ui/Toast";
 
 export default function ImagenesLotePage() {
+  const toast = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
   const [summary, setSummary] = useState<BulkImageSummary | null>(null);
@@ -12,15 +14,51 @@ export default function ImagenesLotePage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const file = fileInputRef.current?.files?.[0];
-    if (!file) return;
+    if (!file) {
+      toast.warning("Selecciona el archivo .zip con las imágenes");
+      return;
+    }
 
     setLoading(true);
     setSummary(null);
+    const toastId = toast.loading("Subiendo imágenes...", {
+      description: `${file.name} · esto puede tardar unos minutos.`,
+    });
+
     const formData = new FormData();
     formData.append("file", file);
     const result = await importImagesZip(formData);
     setSummary(result);
     setLoading(false);
+
+    if (result.imagesUploaded === 0) {
+      toast.update(toastId, {
+        variant: "error",
+        title: "No se subió ninguna imagen",
+        description:
+          result.errors[0] ??
+          (result.skusNotFound.length > 0
+            ? `Ningún SKU coincidió: ${result.skusNotFound.slice(0, 5).join(", ")}`
+            : "Revisa que el .zip tenga una carpeta por SKU."),
+      });
+      return;
+    }
+
+    const pending = [
+      result.skusNotFound.length > 0
+        ? `${result.skusNotFound.length} SKU sin producto`
+        : null,
+      result.errors.length > 0 ? `${result.errors.length} con error` : null,
+    ].filter(Boolean);
+
+    toast.update(toastId, {
+      variant: pending.length > 0 ? "warning" : "success",
+      title: `${result.imagesUploaded} ${result.imagesUploaded === 1 ? "imagen subida" : "imágenes subidas"}`,
+      description: [
+        `${result.productsMatched} ${result.productsMatched === 1 ? "producto actualizado" : "productos actualizados"}`,
+        ...pending,
+      ].join(" · "),
+    });
   }
 
   return (

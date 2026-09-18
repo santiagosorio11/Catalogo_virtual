@@ -2,11 +2,6 @@ import { getCategoryTree, getProducts, getStoreSettings } from "@/lib/data/queri
 import { Header } from "@/components/storefront/Header";
 import { CategoryChips } from "@/components/storefront/CategoryChips";
 import { ProductGrid } from "@/components/storefront/ProductGrid";
-import {
-  withDemoCategoryAssets,
-  withDemoProductAssets,
-  withDemoStoreAssets,
-} from "@/lib/demo-assets";
 
 export default async function Home({
   searchParams,
@@ -14,18 +9,14 @@ export default async function Home({
   searchParams: Promise<{ categoria?: string }>;
 }) {
   const { categoria } = await searchParams;
-  const [rawSettings, rawCategoryTree] = await Promise.all([
+  const [settings, topLevelCategories] = await Promise.all([
     getStoreSettings(),
     getCategoryTree(),
   ]);
 
-  const settings = withDemoStoreAssets(rawSettings);
-  const topLevelCategories = withDemoCategoryAssets(rawCategoryTree);
   const requestedCategory = categoria ?? topLevelCategories[0]?.slug;
   const categoryFilter = requestedCategory === "todo" ? undefined : requestedCategory;
-  const products = withDemoProductAssets(
-    await getProducts({ categorySlug: categoryFilter })
-  );
+  const products = await getProducts({ categorySlug: categoryFilter });
 
   return (
     <div className="storefront-shell min-h-screen bg-[#f4f8fb]">

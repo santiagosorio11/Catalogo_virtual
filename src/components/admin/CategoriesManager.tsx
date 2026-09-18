@@ -21,6 +21,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { ArrowRight, GripVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { deleteCategory, reorderCategories } from "@/actions/categories";
+import { useToast } from "@/components/ui/Toast";
 import { CategoryFormModal } from "./CategoryFormModal";
 import type { CategoryWithChildren, Category } from "@/lib/types";
 
@@ -94,6 +95,7 @@ function CategoryCard({
 
 export function CategoriesManager({ initial }: { initial: CategoryWithChildren[] }) {
   const router = useRouter();
+  const toast = useToast();
   const [categories, setCategories] = useState(initial);
   const [modal, setModal] = useState<{ parentId: string | null; category: Category | null } | null>(
     null
@@ -101,21 +103,39 @@ export function CategoriesManager({ initial }: { initial: CategoryWithChildren[]
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
-  function handleDragEnd(event: DragEndEvent) {
+  async function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
 
+    const previous = categories;
     const oldIndex = categories.findIndex((c) => c.id === active.id);
     const newIndex = categories.findIndex((c) => c.id === over.id);
     const reordered = arrayMove(categories, oldIndex, newIndex);
     setCategories(reordered);
-    reorderCategories(reordered.map((c) => c.id));
+
+    const result = await reorderCategories(reordered.map((c) => c.id));
+    if ("error" in result) {
+      setCategories(previous);
+      toast.error("No se pudo guardar el nuevo orden", { description: result.error });
+      return;
+    }
+    toast.success("Orden de categorías actualizado");
   }
 
-  async function handleDelete(id: string) {
+  async function handleDelete(category: CategoryWithChildren) {
     if (!confirm("¿Eliminar esta categoría? También se eliminarán sus subcategorías.")) return;
-    setCategories((prev) => prev.filter((c) => c.id !== id));
-    await deleteCategory(id);
+
+    const previous = categories;
+    setCategories((prev) => prev.filter((c) => c.id !== category.id));
+
+    const result = await deleteCategory(category.id);
+    if ("error" in result) {
+      setCategories(previous);
+      toast.error("No se pudo eliminar la categoría", { description: result.error });
+      return;
+    }
+    toast.success("Categoría eliminada", { description: category.name });
+    router.refresh();
   }
 
   return (
@@ -139,7 +159,7 @@ export function CategoriesManager({ initial }: { initial: CategoryWithChildren[]
                 category={category}
                 index={index}
                 onEdit={() => setModal({ parentId: null, category })}
-                onDelete={() => handleDelete(category.id)}
+                onDelete={() => handleDelete(category)}
               />
             ))}
           </div>

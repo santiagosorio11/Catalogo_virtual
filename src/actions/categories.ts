@@ -115,11 +115,15 @@ export async function uploadCategoryImage(categoryId: string, formData: FormData
 
 export async function reorderCategories(orderedIds: string[]) {
   const supabase = await createClient();
-  await Promise.all(
+  const results = await Promise.all(
     orderedIds.map((id, index) =>
       supabase.from("categories").update({ sort_order: index }).eq("id", id)
     )
   );
+
+  const failed = results.find((result) => result.error);
+  if (failed?.error) return { error: failed.error.message };
+
   revalidatePath("/admin/categorias", "layout");
   revalidatePath("/");
   return { success: true };
