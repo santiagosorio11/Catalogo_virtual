@@ -70,13 +70,13 @@ export function ProductDetail({ product }: { product: ProductWithRelations }) {
 
   return (
     <div className="mx-auto w-full max-w-4xl px-4 py-5">
-      <Link href="/" className="mb-4 inline-flex items-center gap-1 text-sm text-black/50 hover:text-black">
+      <Link href="/" className="mb-4 inline-flex items-center gap-1 text-sm text-[#545454]/60 hover:text-brand">
         <ArrowLeft size={16} /> Volver al catálogo
       </Link>
 
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
-          <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-black/5">
+          <div className="relative aspect-square w-full overflow-hidden rounded-2xl bg-[#f7f7f7]">
             {images[activeImage]?.url ? (
               <Image
                 src={images[activeImage].url}
@@ -87,7 +87,7 @@ export function ProductDetail({ product }: { product: ProductWithRelations }) {
                 priority
               />
             ) : (
-              <div className="flex h-full w-full items-center justify-center text-sm text-black/30">
+              <div className="flex h-full w-full items-center justify-center text-sm text-[#545454]/40">
                 Sin imagen
               </div>
             )}
@@ -112,12 +112,12 @@ export function ProductDetail({ product }: { product: ProductWithRelations }) {
 
         <div>
           <h1 className="text-xl font-semibold text-[var(--foreground)]">{product.name}</h1>
-          {product.sku && <p className="mt-1 text-xs text-black/40">SKU: {product.sku}</p>}
+          {product.sku && <p className="mt-1 text-xs text-[#545454]/55">SKU: {product.sku}</p>}
 
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-2xl font-bold text-brand">{formatCOP(price)}</span>
             {product.compare_at_price && product.compare_at_price > price && (
-              <span className="text-sm text-black/40 line-through">
+              <span className="text-sm text-[#545454]/55 line-through">
                 {formatCOP(product.compare_at_price)}
               </span>
             )}
@@ -135,7 +135,7 @@ export function ProductDetail({ product }: { product: ProductWithRelations }) {
                       "rounded-lg border px-3 py-1.5 text-sm transition-colors",
                       selectedOptions[name] === option
                         ? "border-brand bg-brand text-white"
-                        : "border-black/10 text-[var(--foreground)] hover:border-brand"
+                        : "border-[#cacaca] text-[var(--foreground)] hover:border-brand"
                     )}
                   >
                     {option}
@@ -146,23 +146,23 @@ export function ProductDetail({ product }: { product: ProductWithRelations }) {
           ))}
 
           {product.description && (
-            <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-black/60">
+            <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-[#545454]/75">
               {product.description}
             </p>
           )}
 
           <div className="mt-6 flex items-center gap-4">
-            <div className="flex items-center rounded-lg border border-black/10">
+            <div className="flex items-center rounded-lg border border-[#cacaca]">
               <button
                 onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                className="flex h-10 w-10 items-center justify-center text-black/60 hover:text-black"
+                className="flex h-10 w-10 items-center justify-center text-[#545454]/70 hover:text-brand"
               >
                 <Minus size={16} />
               </button>
               <span className="w-8 text-center text-sm font-medium">{quantity}</span>
               <button
                 onClick={() => setQuantity((q) => q + 1)}
-                className="flex h-10 w-10 items-center justify-center text-black/60 hover:text-black"
+                className="flex h-10 w-10 items-center justify-center text-[#545454]/70 hover:text-brand"
               >
                 <Plus size={16} />
               </button>

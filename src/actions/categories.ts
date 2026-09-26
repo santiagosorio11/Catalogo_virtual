@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/slugify";
 import { uploadImageAsset } from "@/lib/media";
+import { normalizeCatalogName } from "@/lib/catalog-name";
 
 async function uniqueSlug(base: string, excludeId?: string): Promise<string> {
   const supabase = await createClient();
@@ -25,6 +26,7 @@ export async function createCategory(input: {
   imageUrl?: string | null;
 }) {
   const supabase = await createClient();
+  const name = normalizeCatalogName(input.name);
 
   const siblingsQuery = supabase
     .from("categories")
@@ -33,10 +35,10 @@ export async function createCategory(input: {
     ? await siblingsQuery.eq("parent_id", input.parentId)
     : await siblingsQuery.is("parent_id", null);
 
-  const slug = await uniqueSlug(input.name);
+  const slug = await uniqueSlug(name);
 
   const { error } = await supabase.from("categories").insert({
-    name: input.name.trim(),
+    name,
     slug,
     parent_id: input.parentId,
     image_url: input.imageUrl ?? null,
@@ -54,10 +56,11 @@ export async function updateCategory(
   input: { name: string; imageUrl?: string | null }
 ) {
   const supabase = await createClient();
-  const slug = await uniqueSlug(input.name, id);
+  const name = normalizeCatalogName(input.name);
+  const slug = await uniqueSlug(name, id);
   const { error } = await supabase
     .from("categories")
-    .update({ name: input.name.trim(), slug, image_url: input.imageUrl ?? null })
+    .update({ name, slug, image_url: input.imageUrl ?? null })
     .eq("id", id);
 
   if (error) return { error: error.message };

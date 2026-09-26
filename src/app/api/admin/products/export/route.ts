@@ -1,13 +1,14 @@
 import * as XLSX from "xlsx";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeCatalogName } from "@/lib/catalog-name";
 import type { Category, Product, ProductVariant } from "@/lib/types";
 
 function categoryPath(categoryId: string, byId: Map<string, Category>): string {
   const names: string[] = [];
   let current: Category | undefined = byId.get(categoryId);
   while (current) {
-    names.unshift(current.name);
+    names.unshift(normalizeCatalogName(current.name));
     current = current.parent_id ? byId.get(current.parent_id) : undefined;
   }
   return names.join(" > ");
@@ -67,7 +68,7 @@ export async function GET() {
 
     if (productVariants.length === 0) {
       rows.push([
-        product.name,
+        normalizeCatalogName(product.name),
         product.sku ?? "",
         product.description ?? "",
         product.compare_at_price ?? product.price,
@@ -81,7 +82,7 @@ export async function GET() {
     } else {
       productVariants.forEach((variant, idx) => {
         rows.push([
-          idx === 0 ? product.name : "",
+          idx === 0 ? normalizeCatalogName(product.name) : "",
           product.sku ?? "",
           idx === 0 ? product.description ?? "" : "",
           idx === 0 ? product.compare_at_price ?? product.price : "",

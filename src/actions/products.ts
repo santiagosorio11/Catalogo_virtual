@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { slugify } from "@/lib/slugify";
 import { parseProductsWorkbook } from "@/lib/products-import";
 import { uploadImageAsset, uploadImageBytesAsset, deleteImageAsset } from "@/lib/media";
+import { normalizeCatalogName } from "@/lib/catalog-name";
 
 export interface ProductFormInput {
   name: string;
@@ -42,12 +43,13 @@ async function setProductCategories(productId: string, categoryIds: string[]) {
 
 export async function createProduct(input: ProductFormInput) {
   const supabase = await createClient();
-  const slug = await uniqueProductSlug(input.name);
+  const name = normalizeCatalogName(input.name);
+  const slug = await uniqueProductSlug(name);
 
   const { data, error } = await supabase
     .from("products")
     .insert({
-      name: input.name.trim(),
+      name,
       slug,
       sku: input.sku,
       description: input.description,
@@ -69,12 +71,13 @@ export async function createProduct(input: ProductFormInput) {
 
 export async function updateProduct(id: string, input: ProductFormInput) {
   const supabase = await createClient();
-  const slug = await uniqueProductSlug(input.name, id);
+  const name = normalizeCatalogName(input.name);
+  const slug = await uniqueProductSlug(name, id);
 
   const { error } = await supabase
     .from("products")
     .update({
-      name: input.name.trim(),
+      name,
       slug,
       sku: input.sku,
       description: input.description,
@@ -246,7 +249,8 @@ async function findOrCreateCategoryPath(
 
   let cacheKeyPrefix = "";
   for (const levelName of path) {
-    cacheKeyPrefix += `>${levelName.toLowerCase()}`;
+    const normalizedLevelName = normalizeCatalogName(levelName);
+    cacheKeyPrefix += `>${normalizedLevelName.toLocaleLowerCase("es-CO")}`;
     const cached = cache.get(cacheKeyPrefix);
     if (cached) {
       categoryId = cached;
@@ -254,7 +258,7 @@ async function findOrCreateCategoryPath(
       continue;
     }
 
-    const query = supabase.from("categories").select("id").ilike("name", levelName);
+    const query = supabase.from("categories").select("id").ilike("name", normalizedLevelName);
     const { data: existingRows } = parentId
       ? await query.eq("parent_id", parentId)
       : await query.is("parent_id", null);
@@ -267,13 +271,13 @@ async function findOrCreateCategoryPath(
         .select("id", { count: "exact", head: true })
         .is("parent_id", parentId);
 
-      let slug = slugify(levelName) || "categoria";
+      let slug = slugify(normalizedLevelName) || "categoria";
       const { data: slugClash } = await supabase.from("categories").select("id").eq("slug", slug);
       if (slugClash && slugClash.length > 0) slug = `${slug}-${Date.now().toString(36)}`;
 
       const { data: inserted, error } = await supabase
         .from("categories")
-        .insert({ name: levelName, slug, parent_id: parentId, sort_order: count ?? 0 })
+        .insert({ name: normalizedLevelName, slug, parent_id: parentId, sort_order: count ?? 0 })
         .select("id")
         .single();
 
@@ -310,6 +314,7 @@ export async function importProductsFromXlsx(formData: FormData): Promise<Import
 
   for (const item of parsed) {
     try {
+      const productName = normalizeCatalogName(item.name);
       const categoryIds: string[] = [];
       for (const path of item.categoryPaths) {
         const result = await findOrCreateCategoryPath(path, categoryCache);
@@ -327,7 +332,7 @@ export async function importProductsFromXlsx(formData: FormData): Promise<Import
         existingId = data?.id ?? null;
       }
       if (!existingId) {
-        const candidateSlug = slugify(item.name);
+        const candidateSlug = slugify(productName);
         const { data } = await supabase
           .from("products")
           .select("id")
@@ -342,7 +347,7 @@ export async function importProductsFromXlsx(formData: FormData): Promise<Import
         await supabase
           .from("products")
           .update({
-            name: item.name,
+            name: productName,
             sku: item.sku,
             description: item.description,
             price: item.price,
@@ -369,11 +374,11 @@ export async function importProductsFromXlsx(formData: FormData): Promise<Import
         }
         summary.productsUpdated += 1;
       } else {
-        const slug = await uniqueProductSlug(item.name);
+        const slug = await uniqueProductSlug(productName);
         const { data: inserted, error } = await supabase
           .from("products")
           .insert({
-            name: item.name,
+            name: productName,
             slug,
             sku: item.sku,
             description: item.description,

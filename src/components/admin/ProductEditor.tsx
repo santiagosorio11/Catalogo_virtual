@@ -14,6 +14,7 @@ import {
   uploadProductImage,
 } from "@/actions/products";
 import { useToast } from "@/components/ui/Toast";
+import { groupCategories } from "@/lib/categories";
 import type { Category, ProductWithRelations } from "@/lib/types";
 
 export function ProductEditor({
@@ -39,6 +40,9 @@ export function ProductEditor({
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const categoryGroups = groupCategories(categories);
+  const standaloneCategories = categoryGroups.filter(({ children }) => children.length === 0);
+  const segmentedCategories = categoryGroups.filter(({ children }) => children.length > 0);
 
   function toggleCategory(id: string) {
     setCategoryIds((prev) => {
@@ -181,21 +185,97 @@ export function ProductEditor({
         </section>
 
         <section className="rounded-2xl border border-black/5 bg-white p-5">
-          <h2 className="mb-4 text-sm font-semibold text-black/60">Categorías</h2>
-          <div className="flex flex-wrap gap-2">
-            {categories.map((c) => (
-              <button
-                key={c.id}
-                onClick={() => toggleCategory(c.id)}
-                className={`rounded-full border px-3 py-1.5 text-xs font-medium ${
-                  categoryIds.has(c.id)
-                    ? "border-brand bg-brand-light text-brand"
-                    : "border-black/10 text-black/50"
-                }`}
-              >
-                {c.name}
-              </button>
-            ))}
+          <div className="mb-4">
+            <h2 className="text-sm font-semibold text-black/60">Clasificación del producto</h2>
+            <p className="mt-1 text-xs leading-5 text-slate-400">
+              Las categorías principales y sus subcategorías se seleccionan por separado.
+            </p>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+              Categorías principales
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {standaloneCategories.map(({ category }) => (
+                <label
+                  key={category.id}
+                  className={`cursor-pointer rounded-full border px-3 py-1.5 text-xs font-medium transition ${
+                    categoryIds.has(category.id)
+                      ? "border-brand bg-brand text-white shadow-sm"
+                      : "border-slate-200 bg-white text-slate-600 hover:border-brand/50 hover:text-brand-dark"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={categoryIds.has(category.id)}
+                    onChange={() => toggleCategory(category.id)}
+                    className="sr-only"
+                  />
+                  {category.name}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-3 space-y-3">
+            {segmentedCategories.map(({ category, children }) => {
+              const hasSelectedChild = children.some((child) => categoryIds.has(child.id));
+
+              return (
+                <fieldset
+                  key={category.id}
+                  className={`min-w-0 rounded-xl border p-3 transition ${
+                    categoryIds.has(category.id) || hasSelectedChild
+                      ? "border-brand/35 bg-brand-light/35"
+                      : "border-slate-200 bg-slate-50/60"
+                  }`}
+                >
+                  <legend className="sr-only">{category.name}</legend>
+                  <label className="flex cursor-pointer items-start gap-2.5">
+                    <input
+                      type="checkbox"
+                      checked={categoryIds.has(category.id)}
+                      onChange={() => toggleCategory(category.id)}
+                      className="mt-0.5 h-4 w-4 accent-brand"
+                    />
+                    <span>
+                      <span className="block text-sm font-semibold text-slate-800">
+                        {category.name}
+                      </span>
+                      <span className="mt-0.5 block text-[11px] text-slate-400">
+                        Seleccionar sin segmentar
+                      </span>
+                    </span>
+                  </label>
+
+                  <div className="mt-3 border-t border-brand/15 pt-3">
+                    <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-brand-dark">
+                      Subcategorías
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {children.map((subcategory) => (
+                        <label
+                          key={subcategory.id}
+                          className={`cursor-pointer rounded-full border px-2.5 py-1.5 text-xs font-medium transition ${
+                            categoryIds.has(subcategory.id)
+                              ? "border-brand bg-brand text-white shadow-sm"
+                              : "border-slate-200 bg-white text-slate-600 hover:border-brand/50 hover:text-brand-dark"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={categoryIds.has(subcategory.id)}
+                            onChange={() => toggleCategory(subcategory.id)}
+                            className="sr-only"
+                          />
+                          {subcategory.name}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                </fieldset>
+              );
+            })}
           </div>
         </section>
 

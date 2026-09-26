@@ -36,10 +36,10 @@ export function ProductCard({ product }: { product: ProductWithRelations }) {
   }
 
   return (
-    <article className="group relative flex min-w-0 flex-col overflow-hidden rounded-[22px] border border-slate-200/80 bg-white shadow-[0_8px_28px_rgba(5,42,64,.05)] transition-all hover:-translate-y-1 hover:shadow-[0_16px_38px_rgba(5,42,64,.11)]">
+    <article className="group relative flex min-w-0 flex-col overflow-hidden rounded-[22px] border border-[#cacaca]/70 bg-white shadow-[0_8px_28px_rgba(84,84,84,.07)] transition-all hover:-translate-y-1 hover:shadow-[0_16px_38px_rgba(84,84,84,.15)]">
       <Link
         href={`/producto/${product.slug}`}
-        className="relative aspect-square w-full overflow-hidden bg-[linear-gradient(145deg,#f8fbfd,#eef5f8)] focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-brand"
+        className="relative aspect-square w-full overflow-hidden bg-[linear-gradient(145deg,#ffffff,#fff0f3)] focus-visible:outline-2 focus-visible:outline-offset-[-3px] focus-visible:outline-brand"
         aria-label={`Ver ${product.name}`}
       >
         {image ? (

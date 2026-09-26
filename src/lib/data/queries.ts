@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { normalizeCatalogName } from "@/lib/catalog-name";
 import type {
   Category,
   CategoryWithChildren,
@@ -32,7 +33,10 @@ export async function getCategoryTree(): Promise<CategoryWithChildren[]> {
     .select("*")
     .order("sort_order", { ascending: true });
 
-  const categories = (data ?? []) as Category[];
+  const categories = ((data ?? []) as Category[]).map((category) => ({
+    ...category,
+    name: normalizeCatalogName(category.name),
+  }));
   const byParent = new Map<string | null, Category[]>();
   for (const cat of categories) {
     const key = cat.parent_id;
@@ -53,7 +57,10 @@ export async function getAllCategoriesFlat(): Promise<Category[]> {
     .from("categories")
     .select("*")
     .order("sort_order", { ascending: true });
-  return (data ?? []) as Category[];
+  return ((data ?? []) as Category[]).map((category) => ({
+    ...category,
+    name: normalizeCatalogName(category.name),
+  }));
 }
 
 export async function getActiveStoreLocations(): Promise<StoreLocation[]> {
@@ -150,11 +157,15 @@ async function attachRelations(products: Product[]): Promise<ProductWithRelation
     ]);
 
   const categoryById = new Map<string, Category>(
-    ((allCategories ?? []) as Category[]).map((c) => [c.id, c])
+    ((allCategories ?? []) as Category[]).map((category) => [
+      category.id,
+      { ...category, name: normalizeCatalogName(category.name) },
+    ])
   );
 
   return products.map((product) => ({
     ...product,
+    name: normalizeCatalogName(product.name),
     images: (images ?? []).filter((i) => i.product_id === product.id),
     variants: (variants ?? []).filter((v) => v.product_id === product.id),
     categories: (catLinks ?? [])

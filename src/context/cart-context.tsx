@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import type { CartItem } from "@/lib/types";
+import { normalizeCatalogName } from "@/lib/catalog-name";
 
 const STORAGE_KEY = "catalogo-virtual-cart";
 
@@ -28,6 +29,10 @@ function itemKey(productId: string, variantId: string | null) {
   return `${productId}::${variantId ?? ""}`;
 }
 
+function normalizeCartItem(item: CartItem): CartItem {
+  return { ...item, name: normalizeCatalogName(item.name) };
+}
+
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [hydrated, setHydrated] = useState(false);
@@ -37,7 +42,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       // Restoring browser state after hydration is intentional for this client-only cart.
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (raw) setItems(JSON.parse(raw));
+      if (raw) setItems((JSON.parse(raw) as CartItem[]).map(normalizeCartItem));
     } catch {
       // ignore malformed storage
     }
@@ -54,17 +59,18 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [items, hydrated]);
 
   const addItem = useCallback((newItem: CartItem) => {
+    const normalizedItem = normalizeCartItem(newItem);
     setItems((prev) => {
-      const key = itemKey(newItem.productId, newItem.variantId);
+      const key = itemKey(normalizedItem.productId, normalizedItem.variantId);
       const existing = prev.find((i) => itemKey(i.productId, i.variantId) === key);
       if (existing) {
         return prev.map((i) =>
           itemKey(i.productId, i.variantId) === key
-            ? { ...i, quantity: i.quantity + newItem.quantity }
+            ? { ...i, quantity: i.quantity + normalizedItem.quantity }
             : i
         );
       }
-      return [...prev, newItem];
+      return [...prev, normalizedItem];
     });
   }, []);
 

@@ -14,7 +14,7 @@ export default async function ProductPage({
   if (!product) notFound();
 
   return (
-    <div className="storefront-shell min-h-screen bg-[#f4f8fb]">
+    <div className="storefront-shell min-h-screen bg-storefront-canvas">
       <Header
         storeName={settings.store_name}
         logoUrl={settings.logo_url}

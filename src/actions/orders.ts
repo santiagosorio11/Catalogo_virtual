@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { normalizeCatalogName } from "@/lib/catalog-name";
 import {
   createCrmContactNote,
   CrmConfigurationError,
@@ -195,7 +196,7 @@ async function resolveItems(
     resolved.push({
       productId: product.id,
       variantId: variant?.id ?? null,
-      productName: product.name,
+      productName: normalizeCatalogName(product.name),
       variantLabel: variant ? `${variant.variant_name}: ${variant.option_value}` : null,
       quantity,
       unitPrice,

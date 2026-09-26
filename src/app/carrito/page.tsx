@@ -31,7 +31,7 @@ export default function CartPage() {
 
   return (
     <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6">
-      <Link href="/" className="mb-4 inline-flex items-center gap-1 text-sm text-black/50 hover:text-black">
+      <Link href="/" className="mb-4 inline-flex items-center gap-1 text-sm text-[#545454]/60 hover:text-brand">
         <ArrowLeft size={16} /> Seguir comprando
       </Link>
 
@@ -39,7 +39,7 @@ export default function CartPage() {
 
       {items.length === 0 ? (
         <div className="py-16 text-center">
-          <p className="text-sm text-black/40">Tu carrito está vacío.</p>
+          <p className="text-sm text-[#545454]/55">Tu carrito está vacío.</p>
           <Link
             href="/"
             className="mt-4 inline-flex rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:bg-brand-dark"
@@ -49,10 +49,10 @@ export default function CartPage() {
         </div>
       ) : (
         <>
-          <ul className="divide-y divide-black/5">
+          <ul className="divide-y divide-[#cacaca]/70">
             {items.map((item) => (
               <li key={`${item.productId}-${item.variantId}`} className="flex items-center gap-3 py-4">
-                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-black/5">
+                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-[#f7f7f7]">
                   {item.imageUrl && (
                     <Image src={item.imageUrl} alt={item.name} fill sizes="64px" className="object-cover" />
                   )}
@@ -60,7 +60,7 @@ export default function CartPage() {
                 <div className="flex-1">
                   <p className="text-sm font-medium">{item.name}</p>
                   {item.variantLabel && (
-                    <p className="text-xs text-black/40">{item.variantLabel}</p>
+                    <p className="text-xs text-[#545454]/55">{item.variantLabel}</p>
                   )}
                   <p className="mt-1 text-sm font-semibold text-brand">{formatCOP(item.unitPrice)}</p>
                 </div>
@@ -68,7 +68,7 @@ export default function CartPage() {
                   <button
                     onClick={() => handleQuantityChange(item, item.quantity - 1)}
                     aria-label={`Quitar una unidad de ${item.name}`}
-                    className="flex h-8 w-8 items-center justify-center text-black/60"
+                    className="flex h-8 w-8 items-center justify-center text-[#545454]/70 hover:text-brand"
                   >
                     <Minus size={14} />
                   </button>
@@ -76,14 +76,14 @@ export default function CartPage() {
                   <button
                     onClick={() => handleQuantityChange(item, item.quantity + 1)}
                     aria-label={`Agregar una unidad de ${item.name}`}
-                    className="flex h-8 w-8 items-center justify-center text-black/60"
+                    className="flex h-8 w-8 items-center justify-center text-[#545454]/70 hover:text-brand"
                   >
                     <Plus size={14} />
                   </button>
                 </div>
                 <button
                   onClick={() => handleRemove(item)}
-                  className="text-black/30 hover:text-red-500"
+                  className="text-[#545454]/40 hover:text-brand"
                   aria-label={`Eliminar ${item.name} del carrito`}
                 >
                   <Trash2 size={18} />
@@ -92,8 +92,8 @@ export default function CartPage() {
             ))}
           </ul>
 
-          <div className="mt-6 flex items-center justify-between border-t border-black/10 pt-4">
-            <span className="text-sm text-black/50">Subtotal</span>
+          <div className="mt-6 flex items-center justify-between border-t border-[#cacaca] pt-4">
+            <span className="text-sm text-[#545454]/65">Subtotal</span>
             <span className="text-lg font-bold">{formatCOP(subtotal)}</span>
           </div>
 

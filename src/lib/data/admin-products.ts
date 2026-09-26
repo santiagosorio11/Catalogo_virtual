@@ -1,4 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
+import { collectCategoryAndDescendantIds } from "@/lib/categories";
+import { normalizeCatalogName } from "@/lib/catalog-name";
 import type { Category, Product } from "@/lib/types";
 
 const PAGE_SIZE = 50;
@@ -21,11 +23,20 @@ export async function getAdminProducts(options: {
 
   let productIdsFilter: string[] | null = null;
   if (options.categoryId) {
+    const { data: categoryData } = await supabase
+      .from("categories")
+      .select("*")
+      .order("sort_order", { ascending: true });
+    const categories = (categoryData ?? []) as Category[];
+    const selectedCategory = categories.find((category) => category.id === options.categoryId);
+    const categoryIds = selectedCategory
+      ? collectCategoryAndDescendantIds(selectedCategory.id, categories)
+      : [options.categoryId];
     const { data: links } = await supabase
       .from("product_categories")
       .select("product_id")
-      .eq("category_id", options.categoryId);
-    productIdsFilter = (links ?? []).map((l) => l.product_id);
+      .in("category_id", categoryIds);
+    productIdsFilter = [...new Set((links ?? []).map((link) => link.product_id))];
     if (productIdsFilter.length === 0) {
       return { products: [] as AdminProductRow[], total: 0, page, totalPages: 1 };
     }
@@ -59,7 +70,10 @@ export async function getAdminProducts(options: {
   ]);
 
   const categoryById = new Map<string, Category>(
-    ((allCategories ?? []) as Category[]).map((c) => [c.id, c])
+    ((allCategories ?? []) as Category[]).map((category) => [
+      category.id,
+      { ...category, name: normalizeCatalogName(category.name) },
+    ])
   );
 
   const thumbnailByProduct = new Map<string, string>();
@@ -69,6 +83,7 @@ export async function getAdminProducts(options: {
 
   const rows: AdminProductRow[] = (products ?? []).map((product) => ({
     ...(product as Product),
+    name: normalizeCatalogName(product.name),
     categoryNames: (catLinks ?? [])
       .filter((l) => l.product_id === product.id)
       .map((l) => categoryById.get(l.category_id)?.name)

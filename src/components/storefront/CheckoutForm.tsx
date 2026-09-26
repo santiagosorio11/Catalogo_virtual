@@ -97,7 +97,7 @@ export function CheckoutForm({
           ✓
         </div>
         <h1 className="text-xl font-semibold">¡Pedido #{confirmation.orderNumber} recibido!</h1>
-        <p className="mt-2 text-sm text-black/50">
+        <p className="mt-2 text-sm text-[#545454]/65">
           Quedó pendiente por cotizar. Un asesor revisará los artículos y te enviará la cotización por SMS.
         </p>
         {confirmation.locationName && (
@@ -108,7 +108,7 @@ export function CheckoutForm({
 
         <Link
           href="/"
-          className="mt-6 text-sm font-medium text-black/50 hover:text-black"
+          className="mt-6 text-sm font-medium text-[#545454]/60 hover:text-brand"
         >
           Volver al catálogo
         </Link>
@@ -119,7 +119,7 @@ export function CheckoutForm({
   if (items.length === 0) {
     return (
       <main className="mx-auto w-full max-w-md flex-1 px-4 py-16 text-center">
-        <p className="text-sm text-black/40">Tu carrito está vacío.</p>
+        <p className="text-sm text-[#545454]/55">Tu carrito está vacío.</p>
         <Link href="/" className="mt-4 inline-block text-sm font-medium text-brand">
           Ir al catálogo
         </Link>
@@ -131,7 +131,7 @@ export function CheckoutForm({
     <main className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
       <Link
         href="/carrito"
-        className="mb-4 inline-flex items-center gap-1 text-sm text-black/50 hover:text-black"
+        className="mb-4 inline-flex items-center gap-1 text-sm text-[#545454]/60 hover:text-brand"
       >
         <ArrowLeft size={16} /> Volver al carrito
       </Link>
@@ -177,20 +177,20 @@ export function CheckoutForm({
         )}
 
         <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-black/60">Tus datos</h2>
+          <h2 className="text-sm font-semibold text-[#545454]/80">Tus datos</h2>
           <input
             required
             placeholder="Nombre completo"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
+            className="w-full rounded-lg border border-[#cacaca] px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
           />
           <input
             required
             placeholder="Número de cédula"
             value={cedula}
             onChange={(e) => setCedula(e.target.value)}
-            className="w-full rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
+            className="w-full rounded-lg border border-[#cacaca] px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
           />
           <input
             required
@@ -198,19 +198,19 @@ export function CheckoutForm({
             placeholder="WhatsApp / Teléfono"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="w-full rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
+            className="w-full rounded-lg border border-[#cacaca] px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
           />
           <input
             type="email"
             placeholder="Correo electrónico (opcional)"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
+            className="w-full rounded-lg border border-[#cacaca] px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
           />
         </section>
 
         <section className="space-y-3">
-          <h2 className="text-sm font-semibold text-black/60">Entrega</h2>
+          <h2 className="text-sm font-semibold text-[#545454]/80">Entrega</h2>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -219,7 +219,7 @@ export function CheckoutForm({
                 "rounded-lg border px-3 py-2.5 text-sm font-medium",
                 deliveryMethod === "domicilio"
                   ? "border-brand bg-brand-light text-brand"
-                  : "border-black/10 text-black/60"
+                  : "border-[#cacaca] text-[#545454]/70"
               )}
             >
               Domicilio
@@ -231,7 +231,7 @@ export function CheckoutForm({
                 "rounded-lg border px-3 py-2.5 text-sm font-medium",
                 deliveryMethod === "recoger"
                   ? "border-brand bg-brand-light text-brand"
-                  : "border-black/10 text-black/60"
+                  : "border-[#cacaca] text-[#545454]/70"
               )}
             >
               Recoger en tienda
@@ -245,26 +245,26 @@ export function CheckoutForm({
                 placeholder="Dirección"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="w-full rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
+                className="w-full rounded-lg border border-[#cacaca] px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
               />
               <input
                 placeholder="Detalles (apto, torre, barrio...)"
                 value={addressDetails}
                 onChange={(e) => setAddressDetails(e.target.value)}
-                className="w-full rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
+                className="w-full rounded-lg border border-[#cacaca] px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
               />
               <div className="grid grid-cols-2 gap-3">
                 <input
                   placeholder="Ciudad"
                   value={city}
                   onChange={(e) => setCity(e.target.value)}
-                  className="w-full rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
+                  className="w-full rounded-lg border border-[#cacaca] px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
                 />
                 <input
                   placeholder="Departamento"
                   value={department}
                   onChange={(e) => setDepartment(e.target.value)}
-                  className="w-full rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
+                  className="w-full rounded-lg border border-[#cacaca] px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
                 />
               </div>
             </div>
@@ -277,13 +277,13 @@ export function CheckoutForm({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
-            className="w-full rounded-lg border border-black/10 px-3 py-2.5 text-sm outline-none focus:border-brand"
+            className="w-full rounded-lg border border-[#cacaca] px-3 py-2.5 text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/15"
           />
         </section>
 
-        <div className="rounded-lg bg-black/[0.03] p-4">
+        <div className="rounded-lg bg-[#f7f7f7] p-4">
           <div className="flex justify-between text-sm">
-            <span className="text-black/50">Total</span>
+            <span className="text-[#545454]/65">Total</span>
             <span className="font-semibold">{formatCOP(subtotal)}</span>
           </div>
         </div>

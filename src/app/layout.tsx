@@ -20,6 +20,11 @@ export const metadata: Metadata = {
     template: "%s | Catálogo Virtual",
   },
   description: "Catálogo público y panel operativo para gestionar productos y pedidos.",
+  icons: {
+    icon: "/icon.png",
+    shortcut: "/icon.png",
+    apple: "/icon.png",
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

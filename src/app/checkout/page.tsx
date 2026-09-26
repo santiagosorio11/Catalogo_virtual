@@ -9,7 +9,7 @@ export default async function CheckoutPage() {
   ]);
 
   return (
-    <div className="storefront-shell min-h-screen bg-[#f4f8fb]">
+    <div className="storefront-shell min-h-screen bg-storefront-canvas">
       <Header
         storeName={settings.store_name}
         logoUrl={settings.logo_url}

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAllCategoriesFlat } from "@/lib/data/queries";
 import { AdminTopbar } from "@/components/admin/AdminTopbar";
 import { ProductEditor } from "@/components/admin/ProductEditor";
+import { normalizeCatalogName } from "@/lib/catalog-name";
 import type { Category, Product, ProductImage, ProductVariant } from "@/lib/types";
 
 export default async function ProductEditPage({
@@ -31,6 +32,7 @@ export default async function ProductEditPage({
 
   const fullProduct = {
     ...(product as Product),
+    name: normalizeCatalogName(product.name),
     images: (images ?? []) as ProductImage[],
     variants: (variants ?? []) as ProductVariant[],
     categories: productCategories,
@@ -38,7 +40,7 @@ export default async function ProductEditPage({
 
   return (
     <>
-      <AdminTopbar title={product.name} backHref="/admin/productos" />
+      <AdminTopbar title={normalizeCatalogName(product.name)} backHref="/admin/productos" />
       <div className="admin-enter p-4 sm:p-6">
         <ProductEditor product={fullProduct} categories={categories} />
       </div>

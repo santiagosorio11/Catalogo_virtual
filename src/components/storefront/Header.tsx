@@ -58,7 +58,7 @@ export function Header({
   }
 
   return (
-    <header className="mx-auto w-full max-w-7xl bg-white shadow-[0_18px_50px_rgba(4,36,56,0.08)] sm:mt-5 sm:overflow-hidden sm:rounded-[28px]">
+    <header className="mx-auto w-full max-w-7xl bg-white shadow-[0_18px_50px_rgba(84,84,84,0.14)] sm:mt-5 sm:overflow-hidden sm:rounded-[28px]">
       <div className="relative aspect-[2.7/1] min-h-36 w-full overflow-hidden bg-orbita-navy sm:min-h-52">
         {bannerUrl ? (
           <Image
@@ -70,7 +70,7 @@ export function Header({
             priority
           />
         ) : (
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_25%,rgba(99,183,204,.55),transparent_32%),linear-gradient(130deg,#031b2d,#0b4764)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_25%,rgba(255,182,193,.5),transparent_32%),linear-gradient(130deg,#545454,#d6336c)]" />
         )}
         <div className="absolute inset-0 bg-gradient-to-b from-black/25 via-transparent to-black/35" />
 
@@ -142,7 +142,7 @@ export function Header({
       {totalQuantity > 0 && (
         <Link
           href="/carrito"
-          className="fixed bottom-3 left-1/2 z-40 flex w-[calc(100%-24px)] max-w-md -translate-x-1/2 items-center justify-between rounded-2xl bg-orbita-navy px-4 py-3 text-white shadow-[0_18px_45px_rgba(3,27,45,.3)] transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          className="fixed bottom-3 left-1/2 z-40 flex w-[calc(100%-24px)] max-w-md -translate-x-1/2 items-center justify-between rounded-2xl bg-orbita-navy px-4 py-3 text-white shadow-[0_18px_45px_rgba(84,84,84,.3)] transition-transform hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
         >
           <span className="flex items-center gap-3">
             <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand text-white">

@@ -2,18 +2,23 @@
 
 :root {
   --background: #ffffff;
-  --foreground: #1c1c1c;
-  --brand: #3f6b2f;
-  --brand-dark: #2e4f22;
-  --brand-light: #eef4e8;
-  --admin-bg: #16181c;
-  --admin-bg-active: #22262c;
-  --orbita-navy: #031b2d;
-  --orbita-navy-soft: #0b2b42;
-  --orbita-cyan: #63b7cc;
-  --orbita-cyan-dark: #3f97ae;
-  --orbita-cyan-soft: #e7f5f8;
-  --orbita-canvas: #f3f6f9;
+  --foreground: #545454;
+  --brand: #d6336c;
+  --brand-dark: #ad2756;
+  --brand-light: #fff0f3;
+  --accent: #ff4081;
+  --accent-soft: #ffb6c1;
+  --border: #cacaca;
+  --surface-muted: #f7f7f7;
+  --storefront-canvas: #fff8fa;
+  --admin-bg: #545454;
+  --admin-bg-active: #3f3f3f;
+  --orbita-navy: #545454;
+  --orbita-navy-soft: #3f3f3f;
+  --orbita-cyan: #ff4081;
+  --orbita-cyan-dark: #d6336c;
+  --orbita-cyan-soft: #fff0f3;
+  --orbita-canvas: #f7f7f7;
 }
 
 @theme inline {
@@ -22,6 +27,11 @@
   --color-brand: var(--brand);
   --color-brand-dark: var(--brand-dark);
   --color-brand-light: var(--brand-light);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-border: var(--border);
+  --color-surface-muted: var(--surface-muted);
+  --color-storefront-canvas: var(--storefront-canvas);
   --color-admin-bg: var(--admin-bg);
   --color-admin-bg-active: var(--admin-bg-active);
   --color-orbita-navy: var(--orbita-navy);
@@ -42,16 +52,16 @@ body {
 
 .admin-shell {
   --brand: var(--orbita-cyan-dark);
-  --brand-dark: #287b91;
+  --brand-dark: #ad2756;
   --brand-light: var(--orbita-cyan-soft);
 }
 
 .storefront-shell {
-  --foreground: var(--orbita-navy);
-  --brand: #087fa4;
-  --brand-dark: #05647f;
-  --brand-light: #e4f5f9;
-  color: var(--orbita-navy);
+  --foreground: #545454;
+  --brand: #d6336c;
+  --brand-dark: #ad2756;
+  --brand-light: #fff0f3;
+  color: #545454;
 }
 
 button,
