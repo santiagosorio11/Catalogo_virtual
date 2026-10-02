@@ -2,6 +2,11 @@ import { getCategoryTree, getProducts, getStoreSettings } from "@/lib/data/queri
 import { Header } from "@/components/storefront/Header";
 import { CategoryChips } from "@/components/storefront/CategoryChips";
 import { ProductGrid } from "@/components/storefront/ProductGrid";
+import {
+  getVisibleStorefrontCategories,
+  isColorGelCategory,
+  sortStorefrontProducts,
+} from "@/lib/storefront-catalog";
 
 export default async function Home({
   searchParams,
@@ -9,14 +14,18 @@ export default async function Home({
   searchParams: Promise<{ categoria?: string }>;
 }) {
   const { categoria } = await searchParams;
-  const [settings, topLevelCategories] = await Promise.all([
+  const [settings, categoryTree] = await Promise.all([
     getStoreSettings(),
     getCategoryTree(),
   ]);
+  const topLevelCategories = getVisibleStorefrontCategories(categoryTree);
 
   const requestedCategory = categoria ?? topLevelCategories[0]?.slug;
   const categoryFilter = requestedCategory === "todo" ? undefined : requestedCategory;
-  const products = await getProducts({ categorySlug: categoryFilter });
+  const products = sortStorefrontProducts(
+    await getProducts({ categorySlug: categoryFilter }),
+    { colorGel: isColorGelCategory(categoryTree, requestedCategory) }
+  );
 
   return (
     <div className="storefront-shell min-h-screen bg-storefront-canvas">
