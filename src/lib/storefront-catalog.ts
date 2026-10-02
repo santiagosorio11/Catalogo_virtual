@@ -1,4 +1,9 @@
-import type { CategoryWithChildren, ProductWithRelations } from "@/lib/types";
+import type { CategoryWithChildren } from "@/lib/types";
+
+interface CatalogProductSortItem {
+  id: string;
+  name: string;
+}
 
 const HIDDEN_STOREFRONT_CATEGORY_SLUGS = new Set(["puntos-organic"]);
 const COLOR_GEL_SLUG = "color-gel";
@@ -31,12 +36,17 @@ export function isColorGelCategory(
   );
 }
 
-function compareByName(a: ProductWithRelations, b: ProductWithRelations): number {
+function compareByName(
+  a: CatalogProductSortItem,
+  b: CatalogProductSortItem
+): number {
   return catalogNameCollator.compare(a.name, b.name) || a.id.localeCompare(b.id);
 }
 
-function getLeadingReferenceNumber(name: string): number | null {
-  const match = name.match(/^\s*(\d+)(?=\s|$)/);
+function getColorGelReferenceNumber(name: string): number | null {
+  const match = name.match(
+    /^\s*(?:color\s+gel\s+org(?:anic)?\s+)?(\d+)(?=\s|$)/i
+  );
   return match ? Number.parseInt(match[1], 10) : null;
 }
 
@@ -45,11 +55,11 @@ function isColorGelCollection(name: string): boolean {
 }
 
 function compareColorGelProducts(
-  a: ProductWithRelations,
-  b: ProductWithRelations
+  a: CatalogProductSortItem,
+  b: CatalogProductSortItem
 ): number {
-  const aNumber = getLeadingReferenceNumber(a.name);
-  const bNumber = getLeadingReferenceNumber(b.name);
+  const aNumber = getColorGelReferenceNumber(a.name);
+  const bNumber = getColorGelReferenceNumber(b.name);
   const aGroup = aNumber !== null ? 0 : isColorGelCollection(a.name) ? 2 : 1;
   const bGroup = bNumber !== null ? 0 : isColorGelCollection(b.name) ? 2 : 1;
 
@@ -61,9 +71,9 @@ function compareColorGelProducts(
   return compareByName(a, b);
 }
 
-export function sortStorefrontProducts(
-  products: ProductWithRelations[],
+export function sortCatalogProducts<T extends CatalogProductSortItem>(
+  products: T[],
   options?: { colorGel?: boolean }
-): ProductWithRelations[] {
+): T[] {
   return [...products].sort(options?.colorGel ? compareColorGelProducts : compareByName);
 }

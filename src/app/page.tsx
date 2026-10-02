@@ -5,7 +5,7 @@ import { ProductGrid } from "@/components/storefront/ProductGrid";
 import {
   getVisibleStorefrontCategories,
   isColorGelCategory,
-  sortStorefrontProducts,
+  sortCatalogProducts,
 } from "@/lib/storefront-catalog";
 
 export default async function Home({
@@ -22,7 +22,7 @@ export default async function Home({
 
   const requestedCategory = categoria ?? topLevelCategories[0]?.slug;
   const categoryFilter = requestedCategory === "todo" ? undefined : requestedCategory;
-  const products = sortStorefrontProducts(
+  const products = sortCatalogProducts(
     await getProducts({ categorySlug: categoryFilter }),
     { colorGel: isColorGelCategory(categoryTree, requestedCategory) }
   );

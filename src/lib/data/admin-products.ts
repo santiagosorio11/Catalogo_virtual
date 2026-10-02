@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { collectCategoryAndDescendantIds } from "@/lib/categories";
 import { normalizeCatalogName } from "@/lib/catalog-name";
+import { sortCatalogProducts } from "@/lib/storefront-catalog";
 import type { Category, Product } from "@/lib/types";
 
 const PAGE_SIZE = 50;
+const PRODUCT_QUERY_BATCH_SIZE = 1000;
 
 export interface AdminProductRow extends Product {
   categoryNames: string[];
@@ -22,6 +24,7 @@ export async function getAdminProducts(options: {
   const to = from + PAGE_SIZE - 1;
 
   let productIdsFilter: string[] | null = null;
+  let useColorGelOrder = false;
   if (options.categoryId) {
     const { data: categoryData } = await supabase
       .from("categories")
@@ -32,6 +35,13 @@ export async function getAdminProducts(options: {
     const categoryIds = selectedCategory
       ? collectCategoryAndDescendantIds(selectedCategory.id, categories)
       : [options.categoryId];
+    const colorGelCategory = categories.find((category) => category.slug === "color-gel");
+    const colorGelCategoryIds = colorGelCategory
+      ? collectCategoryAndDescendantIds(colorGelCategory.id, categories)
+      : [];
+    useColorGelOrder = Boolean(
+      selectedCategory && colorGelCategoryIds.includes(selectedCategory.id)
+    );
     const { data: links } = await supabase
       .from("product_categories")
       .select("product_id")
@@ -42,18 +52,47 @@ export async function getAdminProducts(options: {
     }
   }
 
-  let query = supabase
-    .from("products")
-    .select("*", { count: "exact" })
-    .order("created_at", { ascending: false })
-    .range(from, to);
+  function buildProductQuery(batchFrom: number, batchTo: number) {
+    let query = supabase
+      .from("products")
+      .select("*", { count: "exact" });
 
-  if (options.search) query = query.ilike("name", `%${options.search}%`);
-  if (options.active) query = query.eq("active", options.active === "true");
-  if (productIdsFilter) query = query.in("id", productIdsFilter);
+    if (options.search) query = query.ilike("name", `%${options.search}%`);
+    if (options.active) query = query.eq("active", options.active === "true");
+    if (productIdsFilter) query = query.in("id", productIdsFilter);
 
-  const { data: products, count } = await query;
-  const ids = (products ?? []).map((p) => p.id);
+    return query.order("id", { ascending: true }).range(batchFrom, batchTo);
+  }
+
+  const matchingProducts: Product[] = [];
+  let total: number | null = null;
+
+  for (
+    let batchFrom = 0;
+    total === null || batchFrom < total;
+    batchFrom += PRODUCT_QUERY_BATCH_SIZE
+  ) {
+    const { data, count, error } = await buildProductQuery(
+      batchFrom,
+      batchFrom + PRODUCT_QUERY_BATCH_SIZE - 1
+    );
+    if (error) throw new Error(`No se pudieron cargar los productos: ${error.message}`);
+
+    const batch = (data ?? []) as Product[];
+    matchingProducts.push(...batch);
+    if (total === null) total = count ?? batch.length;
+    if (batch.length < PRODUCT_QUERY_BATCH_SIZE) break;
+  }
+
+  const sortedProducts = sortCatalogProducts(
+    matchingProducts.map((product) => ({
+      ...product,
+      name: normalizeCatalogName(product.name),
+    })),
+    { colorGel: useColorGelOrder }
+  );
+  const products = sortedProducts.slice(from, to + 1);
+  const ids = products.map((product) => product.id);
 
   const [{ data: catLinks }, { data: allCategories }, { data: images }] = await Promise.all([
     ids.length > 0
@@ -82,8 +121,7 @@ export async function getAdminProducts(options: {
   }
 
   const rows: AdminProductRow[] = (products ?? []).map((product) => ({
-    ...(product as Product),
-    name: normalizeCatalogName(product.name),
+    ...product,
     categoryNames: (catLinks ?? [])
       .filter((l) => l.product_id === product.id)
       .map((l) => categoryById.get(l.category_id)?.name)
@@ -91,6 +129,11 @@ export async function getAdminProducts(options: {
     thumbnailUrl: thumbnailByProduct.get(product.id) ?? null,
   }));
 
-  const total = count ?? 0;
-  return { products: rows, total, page, totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)) };
+  const productCount = total ?? 0;
+  return {
+    products: rows,
+    total: productCount,
+    page,
+    totalPages: Math.max(1, Math.ceil(productCount / PAGE_SIZE)),
+  };
 }
